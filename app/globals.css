@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #F8F5F0;
+  --text: #2C2416;
+  --brown: #7C5C3E;
+  --brown-light: #B8956A;
+  --sage: #7A9171;
+  --cream: #EDE8DF;
+  --muted: #9B8E82;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-brown: var(--brown);
+  --color-brown-light: var(--brown-light);
+  --color-sage: var(--sage);
+  --color-cream: var(--cream);
+  --color-muted: var(--muted);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Serif TC', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: 'Noto Serif TC', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
