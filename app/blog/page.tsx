@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: '咖啡豆介紹、手沖教學，與你分享每一杯咖啡背後的故事。',
 }
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 const CATEGORY_LABELS: Record<string, string> = {
   BEAN: '豆子介紹',

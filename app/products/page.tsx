@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: '台灣精品咖啡豆，淺焙手沖推薦。衣索比亞耶加雪菲、哥倫比亞薇拉，以及每季限定豆。',
 }
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function ProductsPage() {
   const products = await prisma.product.findMany({
