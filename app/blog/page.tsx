@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import Image from 'next/image'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -24,8 +25,8 @@ export default async function BlogPage() {
   const brews = posts.filter(p => p.category === 'BREW')
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-16">
-      <div className="text-center mb-14">
+    <div className="max-w-5xl mx-auto px-4 md:px-6 py-12 md:py-16">
+      <div className="text-center mb-10 md:mb-14">
         <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>ARTICLES</p>
         <h1 className="text-3xl" style={{ color: 'var(--brown)' }}>文章</h1>
       </div>
@@ -37,7 +38,7 @@ export default async function BlogPage() {
       {beans.length > 0 && (
         <section className="mb-16">
           <h2 className="text-lg font-semibold mb-8 pb-3" style={{ color: 'var(--brown)', borderBottom: '1px solid var(--cream)' }}>豆子介紹</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
             {beans.map(post => <PostCard key={post.id} post={post} />)}
           </div>
         </section>
@@ -46,7 +47,7 @@ export default async function BlogPage() {
       {brews.length > 0 && (
         <section>
           <h2 className="text-lg font-semibold mb-8 pb-3" style={{ color: 'var(--brown)', borderBottom: '1px solid var(--cream)' }}>沖煮教學</h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 md:gap-8">
             {brews.map(post => <PostCard key={post.id} post={post} />)}
           </div>
         </section>
@@ -60,9 +61,15 @@ function PostCard({ post }: { post: { id: string; slug: string; title: string; c
     <Link href={`/blog/${post.slug}`}
       className="group block rounded-sm overflow-hidden transition-shadow hover:shadow-md"
       style={{ background: 'var(--cream)' }}>
-      <div className="h-48 overflow-hidden flex items-center justify-center text-sm" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
+      <div className="relative aspect-[16/9] overflow-hidden flex items-center justify-center text-sm" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
         {post.coverImage
-          ? <img src={post.coverImage} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <Image
+              src={post.coverImage}
+              alt={post.title}
+              fill
+              sizes="(max-width: 640px) 100vw, 50vw"
+              className="object-cover group-hover:scale-105 transition-transform duration-300"
+            />
           : '文章圖片'}
       </div>
       <div className="p-6">

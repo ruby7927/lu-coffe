@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -9,19 +10,22 @@ export default function AboutPage() {
   return (
     <div>
       {/* Landscape photo with side margins */}
-      <div className="max-w-5xl mx-auto px-6 pt-8">
-        <div className="overflow-hidden rounded-sm" style={{ maxHeight: '520px' }}>
-          <img
+      <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 md:pt-8">
+        <div className="relative w-full aspect-[16/10] md:aspect-[16/8] overflow-hidden rounded-sm">
+          <Image
             src="/images/lumee3.jpg"
             alt="嚕咪與 Lu Coffee"
-            className="w-full object-cover"
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 1024px"
+            className="object-cover"
             style={{ objectPosition: 'center center' }}
           />
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-3xl mx-auto px-6 py-16">
+      <div className="max-w-3xl mx-auto px-6 py-12 md:py-16">
         <div className="text-center mb-14">
           <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>OUR STORY</p>
           <h1 className="text-3xl" style={{ color: 'var(--brown)' }}>關於嚕咖</h1>

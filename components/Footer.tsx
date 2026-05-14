@@ -1,9 +1,18 @@
+import Image from 'next/image'
+
 export default function Footer() {
   return (
     <footer style={{ background: 'var(--cream)', borderTop: '1px solid var(--brown-light)', color: 'var(--muted)' }}
-      className="py-16 mt-20">
+      className="py-12 md:py-16 mt-16 md:mt-20">
       <div className="max-w-5xl mx-auto px-6 text-center">
-        <img src="/images/lumee2.jpg" alt="嚕咖 Lu coffee" style={{ height: '100px', width: '100px', objectFit: 'contain', mixBlendMode: 'multiply', margin: '0 auto 16px' }} />
+        <Image
+          src="/images/lumee2.jpg"
+          alt="嚕咖 Lu coffee"
+          width={100}
+          height={100}
+          className="mx-auto mb-4 object-contain"
+          style={{ mixBlendMode: 'multiply' }}
+        />
         <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--muted)' }}>
           嚕咪陪著我們，用一杯好咖啡，找回生活的節奏。
         </p>

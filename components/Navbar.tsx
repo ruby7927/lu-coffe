@@ -1,5 +1,6 @@
 'use client'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useState, useEffect } from 'react'
 
 export default function Navbar() {
@@ -24,10 +25,18 @@ export default function Navbar() {
 
   return (
     <nav style={{ background: 'var(--cream)', borderBottom: '1px solid var(--brown-light)' }} className="sticky top-0 z-50">
-      <div className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-          <img src="/images/lumee2.jpg" alt="嚕咖 Lu coffee" style={{ height: '64px', width: '64px', objectFit: 'contain', mixBlendMode: 'multiply' }} />
-          <span className="text-2xl tracking-widest font-semibold" style={{ color: 'var(--brown)' }}>Lu Coffee</span>
+      <div className="max-w-5xl mx-auto px-4 md:px-6 py-3 md:py-5 flex items-center justify-between gap-3">
+        <Link href="/" className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity min-w-0">
+          <Image
+            src="/images/lumee2.jpg"
+            alt="嚕咖 Lu coffee"
+            width={64}
+            height={64}
+            priority
+            className="h-12 w-12 md:h-16 md:w-16 object-contain shrink-0"
+            style={{ mixBlendMode: 'multiply' }}
+          />
+          <span className="text-lg md:text-2xl tracking-widest font-semibold truncate" style={{ color: 'var(--brown)' }}>Lu Coffee</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-10 text-base" style={{ color: 'var(--text)' }}>

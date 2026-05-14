@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 
@@ -23,13 +24,20 @@ export default async function ProductPage({ params }: Props) {
   if (!product || !product.isActive) notFound()
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-16">
-      <div className="grid md:grid-cols-2 gap-14 items-start">
+    <div className="max-w-4xl mx-auto px-4 md:px-6 py-12 md:py-16">
+      <div className="grid md:grid-cols-2 gap-8 md:gap-14 items-start">
         {/* Image */}
-        <div className="aspect-square rounded-sm overflow-hidden flex items-center justify-center text-sm"
+        <div className="relative aspect-square rounded-sm overflow-hidden flex items-center justify-center text-sm"
           style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
           {product.imageUrl
-            ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+            ? <Image
+                src={product.imageUrl}
+                alt={product.name}
+                fill
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover"
+              />
             : '商品圖片'}
         </div>
 
