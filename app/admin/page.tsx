@@ -12,8 +12,12 @@ const CATEGORY_LABELS: Record<string, string> = { BEAN: '豆子介紹', BREW: '�
 type OrderItem = { id: string; size: string; quantity: number; price: number; product: { name: string } }
 type Order = { id: string; orderNumber: string; customerName: string; phone: string; email: string | null; address: string; shippingMethod: string; paymentMethod: string; status: string; subtotal: number; shippingFee: number; total: number; notes: string | null; createdAt: string; items: OrderItem[] }
 type Post = { id: string; slug: string; title: string; category: string; excerpt: string; content: string; coverImage: string | null; isPublished: boolean; publishedAt: string }
-type Product = { id: string; name: string; price100g: number; price200g: number }
-type ManualItem = { productId: string; size: '100g' | '200g'; quantity: number; price: number }
+type Product = { id: string; name: string; priceRegular: number; priceCommunity: number }
+type PriceTier = 'REGULAR' | 'COMMUNITY'
+type ManualItem = { productId: string; tier: PriceTier; quantity: number; price: number }
+
+const TIER_LABELS: Record<PriceTier, string> = { REGULAR: '一般價', COMMUNITY: '社區價' }
+const TIER_SIZE_LABEL: Record<PriceTier, string> = { REGULAR: '半磅 (一般)', COMMUNITY: '半磅 (社區)' }
 type ManualOrderForm = { orderNumber: string; createdAt: string; customerName: string; phone: string; email: string; address: string; shippingMethod: string; paymentMethod: string; status: string; items: ManualItem[]; shippingFee: number; notes: string }
 
 const SHIPPING_FEE: Record<string, number> = { YAMATO: 100, SEVEN: 60, SELF: 0 }
@@ -29,7 +33,7 @@ function emptyManualOrder(): ManualOrderForm {
     shippingMethod: 'YAMATO',
     paymentMethod: 'TRANSFER',
     status: 'CONFIRMED',
-    items: [{ productId: '', size: '100g', quantity: 1, price: 0 }],
+    items: [{ productId: '', tier: 'REGULAR', quantity: 1, price: 0 }],
     shippingFee: 100,
     notes: '',
   }
@@ -80,19 +84,19 @@ export default function AdminPage() {
     setManualOrder(o => {
       const items = [...o.items]
       items[idx] = { ...items[idx], ...patch }
-      // auto-fill price when product/size changes
-      if (patch.productId || patch.size) {
+      // auto-fill price when product or tier changes
+      if (patch.productId || patch.tier) {
         const it = items[idx]
         const prod = products.find(p => p.id === it.productId)
         if (prod) {
-          items[idx].price = it.size === '200g' ? prod.price200g : prod.price100g
+          items[idx].price = it.tier === 'COMMUNITY' ? prod.priceCommunity : prod.priceRegular
         }
       }
       return { ...o, items }
     })
   }
 
-  const addManualItem = () => setManualOrder(o => ({ ...o, items: [...o.items, { productId: '', size: '100g', quantity: 1, price: 0 }] }))
+  const addManualItem = () => setManualOrder(o => ({ ...o, items: [...o.items, { productId: '', tier: 'REGULAR', quantity: 1, price: 0 }] }))
   const removeManualItem = (idx: number) => setManualOrder(o => ({ ...o, items: o.items.filter((_, i) => i !== idx) }))
 
   const setShippingMethod = (method: string) => {
@@ -108,6 +112,12 @@ export default function AdminPage() {
       headers: headers(),
       body: JSON.stringify({
         ...manualOrder,
+        items: manualOrder.items.map(i => ({
+          productId: i.productId,
+          size: TIER_SIZE_LABEL[i.tier],
+          quantity: i.quantity,
+          price: i.price,
+        })),
         subtotal: manualSubtotal,
         total: manualTotal,
         createdAt: manualOrder.createdAt ? new Date(manualOrder.createdAt).toISOString() : undefined,
@@ -260,13 +270,13 @@ export default function AdminPage() {
                 <div className="space-y-2">
                   {manualOrder.items.map((item, idx) => (
                     <div key={idx} className="grid grid-cols-12 gap-2 items-center">
-                      <select value={item.productId} onChange={e => updateManualItem(idx, { productId: e.target.value })} className="col-span-5 px-2 py-2 text-sm outline-none" style={inputStyle}>
-                        <option value="">選擇商品</option>
+                      <select value={item.productId} onChange={e => updateManualItem(idx, { productId: e.target.value })} className="col-span-4 px-2 py-2 text-sm outline-none" style={inputStyle}>
+                        <option value="">選擇商品（半磅 227g）</option>
                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
-                      <select value={item.size} onChange={e => updateManualItem(idx, { size: e.target.value as '100g' | '200g' })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle}>
-                        <option value="100g">100g</option>
-                        <option value="200g">200g</option>
+                      <select value={item.tier} onChange={e => updateManualItem(idx, { tier: e.target.value as PriceTier })} className="col-span-3 px-2 py-2 text-sm outline-none" style={inputStyle}>
+                        <option value="REGULAR">一般價</option>
+                        <option value="COMMUNITY">社區價</option>
                       </select>
                       <input type="number" min="1" placeholder="數量" value={item.quantity} onChange={e => updateManualItem(idx, { quantity: Number(e.target.value) })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle} />
                       <input type="number" min="0" placeholder="單價" value={item.price} onChange={e => updateManualItem(idx, { price: Number(e.target.value) })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle} />

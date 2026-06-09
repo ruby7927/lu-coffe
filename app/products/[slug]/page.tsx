@@ -61,10 +61,9 @@ export default async function ProductPage({ params }: Props) {
 
           <div className="mb-8 p-4 rounded-sm" style={{ background: 'var(--cream)' }}>
             <p className="text-xs tracking-wider mb-3" style={{ color: 'var(--muted)' }}>價格</p>
-            <div className="space-y-2 text-sm" style={{ color: 'var(--brown)' }}>
-              <p>100g — NT${product.price100g}</p>
-              <p>200g — NT${product.price200g}</p>
-            </div>
+            <p className="text-base" style={{ color: 'var(--brown)' }}>
+              半磅 (227g) — NT${product.priceRegular}
+            </p>
           </div>
 
           <a href="https://s.shopee.tw/10zagmy7Rk" target="_blank" rel="noopener noreferrer"

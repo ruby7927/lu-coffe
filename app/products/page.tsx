@@ -58,9 +58,7 @@ export default async function ProductsPage() {
               <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text)' }}>{p.description}</p>
               <div className="flex justify-between items-center">
                 <div className="text-sm" style={{ color: 'var(--brown)' }}>
-                  <span>100g NT${p.price100g}</span>
-                  <span className="mx-2 opacity-40">|</span>
-                  <span>200g NT${p.price200g}</span>
+                  <span>半磅 NT${p.priceRegular}</span>
                 </div>
                 <span className="text-xs tracking-wider underline underline-offset-2 group-hover:opacity-70" style={{ color: 'var(--brown)' }}>
                   了解更多

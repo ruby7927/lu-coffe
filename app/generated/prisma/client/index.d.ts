@@ -1235,12 +1235,16 @@ export namespace Prisma {
   export type ProductAvgAggregateOutputType = {
     price100g: number | null
     price200g: number | null
+    priceRegular: number | null
+    priceCommunity: number | null
     sortOrder: number | null
   }
 
   export type ProductSumAggregateOutputType = {
     price100g: number | null
     price200g: number | null
+    priceRegular: number | null
+    priceCommunity: number | null
     sortOrder: number | null
   }
 
@@ -1254,6 +1258,8 @@ export namespace Prisma {
     description: string | null
     price100g: number | null
     price200g: number | null
+    priceRegular: number | null
+    priceCommunity: number | null
     imageUrl: string | null
     isActive: boolean | null
     isSeasonal: boolean | null
@@ -1272,6 +1278,8 @@ export namespace Prisma {
     description: string | null
     price100g: number | null
     price200g: number | null
+    priceRegular: number | null
+    priceCommunity: number | null
     imageUrl: string | null
     isActive: boolean | null
     isSeasonal: boolean | null
@@ -1291,6 +1299,8 @@ export namespace Prisma {
     description: number
     price100g: number
     price200g: number
+    priceRegular: number
+    priceCommunity: number
     imageUrl: number
     isActive: number
     isSeasonal: number
@@ -1304,12 +1314,16 @@ export namespace Prisma {
   export type ProductAvgAggregateInputType = {
     price100g?: true
     price200g?: true
+    priceRegular?: true
+    priceCommunity?: true
     sortOrder?: true
   }
 
   export type ProductSumAggregateInputType = {
     price100g?: true
     price200g?: true
+    priceRegular?: true
+    priceCommunity?: true
     sortOrder?: true
   }
 
@@ -1323,6 +1337,8 @@ export namespace Prisma {
     description?: true
     price100g?: true
     price200g?: true
+    priceRegular?: true
+    priceCommunity?: true
     imageUrl?: true
     isActive?: true
     isSeasonal?: true
@@ -1341,6 +1357,8 @@ export namespace Prisma {
     description?: true
     price100g?: true
     price200g?: true
+    priceRegular?: true
+    priceCommunity?: true
     imageUrl?: true
     isActive?: true
     isSeasonal?: true
@@ -1360,6 +1378,8 @@ export namespace Prisma {
     description?: true
     price100g?: true
     price200g?: true
+    priceRegular?: true
+    priceCommunity?: true
     imageUrl?: true
     isActive?: true
     isSeasonal?: true
@@ -1466,6 +1486,8 @@ export namespace Prisma {
     description: string
     price100g: number
     price200g: number
+    priceRegular: number
+    priceCommunity: number
     imageUrl: string | null
     isActive: boolean
     isSeasonal: boolean
@@ -1504,6 +1526,8 @@ export namespace Prisma {
     description?: boolean
     price100g?: boolean
     price200g?: boolean
+    priceRegular?: boolean
+    priceCommunity?: boolean
     imageUrl?: boolean
     isActive?: boolean
     isSeasonal?: boolean
@@ -1525,6 +1549,8 @@ export namespace Prisma {
     description?: boolean
     price100g?: boolean
     price200g?: boolean
+    priceRegular?: boolean
+    priceCommunity?: boolean
     imageUrl?: boolean
     isActive?: boolean
     isSeasonal?: boolean
@@ -1544,6 +1570,8 @@ export namespace Prisma {
     description?: boolean
     price100g?: boolean
     price200g?: boolean
+    priceRegular?: boolean
+    priceCommunity?: boolean
     imageUrl?: boolean
     isActive?: boolean
     isSeasonal?: boolean
@@ -1563,6 +1591,8 @@ export namespace Prisma {
     description?: boolean
     price100g?: boolean
     price200g?: boolean
+    priceRegular?: boolean
+    priceCommunity?: boolean
     imageUrl?: boolean
     isActive?: boolean
     isSeasonal?: boolean
@@ -1571,7 +1601,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "origin" | "process" | "roastLevel" | "flavorNotes" | "description" | "price100g" | "price200g" | "imageUrl" | "isActive" | "isSeasonal" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "slug" | "name" | "origin" | "process" | "roastLevel" | "flavorNotes" | "description" | "price100g" | "price200g" | "priceRegular" | "priceCommunity" | "imageUrl" | "isActive" | "isSeasonal" | "sortOrder" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
   export type ProductInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     orderItems?: boolean | Product$orderItemsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
@@ -1595,6 +1625,8 @@ export namespace Prisma {
       description: string
       price100g: number
       price200g: number
+      priceRegular: number
+      priceCommunity: number
       imageUrl: string | null
       isActive: boolean
       isSeasonal: boolean
@@ -2035,6 +2067,8 @@ export namespace Prisma {
     readonly description: FieldRef<"Product", 'String'>
     readonly price100g: FieldRef<"Product", 'Int'>
     readonly price200g: FieldRef<"Product", 'Int'>
+    readonly priceRegular: FieldRef<"Product", 'Int'>
+    readonly priceCommunity: FieldRef<"Product", 'Int'>
     readonly imageUrl: FieldRef<"Product", 'String'>
     readonly isActive: FieldRef<"Product", 'Boolean'>
     readonly isSeasonal: FieldRef<"Product", 'Boolean'>
@@ -5948,6 +5982,8 @@ export namespace Prisma {
     description: 'description',
     price100g: 'price100g',
     price200g: 'price200g',
+    priceRegular: 'priceRegular',
+    priceCommunity: 'priceCommunity',
     imageUrl: 'imageUrl',
     isActive: 'isActive',
     isSeasonal: 'isSeasonal',
@@ -6132,6 +6168,8 @@ export namespace Prisma {
     description?: StringFilter<"Product"> | string
     price100g?: IntFilter<"Product"> | number
     price200g?: IntFilter<"Product"> | number
+    priceRegular?: IntFilter<"Product"> | number
+    priceCommunity?: IntFilter<"Product"> | number
     imageUrl?: StringNullableFilter<"Product"> | string | null
     isActive?: BoolFilter<"Product"> | boolean
     isSeasonal?: BoolFilter<"Product"> | boolean
@@ -6152,6 +6190,8 @@ export namespace Prisma {
     description?: SortOrder
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
     isActive?: SortOrder
     isSeasonal?: SortOrder
@@ -6175,6 +6215,8 @@ export namespace Prisma {
     description?: StringFilter<"Product"> | string
     price100g?: IntFilter<"Product"> | number
     price200g?: IntFilter<"Product"> | number
+    priceRegular?: IntFilter<"Product"> | number
+    priceCommunity?: IntFilter<"Product"> | number
     imageUrl?: StringNullableFilter<"Product"> | string | null
     isActive?: BoolFilter<"Product"> | boolean
     isSeasonal?: BoolFilter<"Product"> | boolean
@@ -6195,6 +6237,8 @@ export namespace Prisma {
     description?: SortOrder
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     imageUrl?: SortOrderInput | SortOrder
     isActive?: SortOrder
     isSeasonal?: SortOrder
@@ -6222,6 +6266,8 @@ export namespace Prisma {
     description?: StringWithAggregatesFilter<"Product"> | string
     price100g?: IntWithAggregatesFilter<"Product"> | number
     price200g?: IntWithAggregatesFilter<"Product"> | number
+    priceRegular?: IntWithAggregatesFilter<"Product"> | number
+    priceCommunity?: IntWithAggregatesFilter<"Product"> | number
     imageUrl?: StringNullableWithAggregatesFilter<"Product"> | string | null
     isActive?: BoolWithAggregatesFilter<"Product"> | boolean
     isSeasonal?: BoolWithAggregatesFilter<"Product"> | boolean
@@ -6493,8 +6539,10 @@ export namespace Prisma {
     roastLevel: string
     flavorNotes?: ProductCreateflavorNotesInput | string[]
     description: string
-    price100g: number
-    price200g: number
+    price100g?: number
+    price200g?: number
+    priceRegular?: number
+    priceCommunity?: number
     imageUrl?: string | null
     isActive?: boolean
     isSeasonal?: boolean
@@ -6513,8 +6561,10 @@ export namespace Prisma {
     roastLevel: string
     flavorNotes?: ProductCreateflavorNotesInput | string[]
     description: string
-    price100g: number
-    price200g: number
+    price100g?: number
+    price200g?: number
+    priceRegular?: number
+    priceCommunity?: number
     imageUrl?: string | null
     isActive?: boolean
     isSeasonal?: boolean
@@ -6535,6 +6585,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean
@@ -6555,6 +6607,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean
@@ -6573,8 +6627,10 @@ export namespace Prisma {
     roastLevel: string
     flavorNotes?: ProductCreateflavorNotesInput | string[]
     description: string
-    price100g: number
-    price200g: number
+    price100g?: number
+    price200g?: number
+    priceRegular?: number
+    priceCommunity?: number
     imageUrl?: string | null
     isActive?: boolean
     isSeasonal?: boolean
@@ -6594,6 +6650,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean
@@ -6613,6 +6671,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean
@@ -7001,6 +7061,8 @@ export namespace Prisma {
     description?: SortOrder
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     imageUrl?: SortOrder
     isActive?: SortOrder
     isSeasonal?: SortOrder
@@ -7012,6 +7074,8 @@ export namespace Prisma {
   export type ProductAvgOrderByAggregateInput = {
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     sortOrder?: SortOrder
   }
 
@@ -7025,6 +7089,8 @@ export namespace Prisma {
     description?: SortOrder
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     imageUrl?: SortOrder
     isActive?: SortOrder
     isSeasonal?: SortOrder
@@ -7043,6 +7109,8 @@ export namespace Prisma {
     description?: SortOrder
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     imageUrl?: SortOrder
     isActive?: SortOrder
     isSeasonal?: SortOrder
@@ -7054,6 +7122,8 @@ export namespace Prisma {
   export type ProductSumOrderByAggregateInput = {
     price100g?: SortOrder
     price200g?: SortOrder
+    priceRegular?: SortOrder
+    priceCommunity?: SortOrder
     sortOrder?: SortOrder
   }
 
@@ -7764,8 +7834,10 @@ export namespace Prisma {
     roastLevel: string
     flavorNotes?: ProductCreateflavorNotesInput | string[]
     description: string
-    price100g: number
-    price200g: number
+    price100g?: number
+    price200g?: number
+    priceRegular?: number
+    priceCommunity?: number
     imageUrl?: string | null
     isActive?: boolean
     isSeasonal?: boolean
@@ -7783,8 +7855,10 @@ export namespace Prisma {
     roastLevel: string
     flavorNotes?: ProductCreateflavorNotesInput | string[]
     description: string
-    price100g: number
-    price200g: number
+    price100g?: number
+    price200g?: number
+    priceRegular?: number
+    priceCommunity?: number
     imageUrl?: string | null
     isActive?: boolean
     isSeasonal?: boolean
@@ -7867,6 +7941,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean
@@ -7886,6 +7962,8 @@ export namespace Prisma {
     description?: StringFieldUpdateOperationsInput | string
     price100g?: IntFieldUpdateOperationsInput | number
     price200g?: IntFieldUpdateOperationsInput | number
+    priceRegular?: IntFieldUpdateOperationsInput | number
+    priceCommunity?: IntFieldUpdateOperationsInput | number
     imageUrl?: NullableStringFieldUpdateOperationsInput | string | null
     isActive?: BoolFieldUpdateOperationsInput | boolean
     isSeasonal?: BoolFieldUpdateOperationsInput | boolean

@@ -88,7 +88,7 @@ export default async function Home() {
                 <h3 className="text-base sm:text-lg font-semibold mb-2" style={{ color: 'var(--brown)' }}>{p.name}</h3>
                 <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>{p.roastLevel}・{p.process}</p>
                 <p className="text-base font-medium" style={{ color: 'var(--brown)' }}>
-                  NT${p.price100g} 起
+                  半磅 NT${p.priceRegular}
                 </p>
               </div>
             </Link>

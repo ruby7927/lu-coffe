@@ -17,8 +17,10 @@ model Product {
   roastLevel  String
   flavorNotes String[]
   description String
-  price100g   Int
-  price200g   Int
+  price100g       Int  @default(0)
+  price200g       Int  @default(0)
+  priceRegular    Int  @default(0)
+  priceCommunity  Int  @default(0)
   imageUrl    String?
   isActive    Boolean  @default(true)
   isSeasonal  Boolean  @default(false)

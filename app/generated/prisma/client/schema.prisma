@@ -9,23 +9,25 @@ datasource db {
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  slug        String      @unique
-  name        String
-  origin      String
-  process     String
-  roastLevel  String
-  flavorNotes String[]
-  description String
-  price100g   Int
-  price200g   Int
-  imageUrl    String?
-  isActive    Boolean     @default(true)
-  isSeasonal  Boolean     @default(false)
-  sortOrder   Int         @default(0)
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  orderItems  OrderItem[]
+  id             String      @id @default(cuid())
+  slug           String      @unique
+  name           String
+  origin         String
+  process        String
+  roastLevel     String
+  flavorNotes    String[]
+  description    String
+  price100g      Int         @default(0)
+  price200g      Int         @default(0)
+  priceRegular   Int         @default(0)
+  priceCommunity Int         @default(0)
+  imageUrl       String?
+  isActive       Boolean     @default(true)
+  isSeasonal     Boolean     @default(false)
+  sortOrder      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  orderItems     OrderItem[]
 }
 
 model Order {
