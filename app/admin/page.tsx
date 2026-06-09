@@ -12,6 +12,28 @@ const CATEGORY_LABELS: Record<string, string> = { BEAN: '豆子介紹', BREW: '�
 type OrderItem = { id: string; size: string; quantity: number; price: number; product: { name: string } }
 type Order = { id: string; orderNumber: string; customerName: string; phone: string; email: string | null; address: string; shippingMethod: string; paymentMethod: string; status: string; subtotal: number; shippingFee: number; total: number; notes: string | null; createdAt: string; items: OrderItem[] }
 type Post = { id: string; slug: string; title: string; category: string; excerpt: string; content: string; coverImage: string | null; isPublished: boolean; publishedAt: string }
+type Product = { id: string; name: string; price100g: number; price200g: number }
+type ManualItem = { productId: string; size: '100g' | '200g'; quantity: number; price: number }
+type ManualOrderForm = { orderNumber: string; createdAt: string; customerName: string; phone: string; email: string; address: string; shippingMethod: string; paymentMethod: string; status: string; items: ManualItem[]; shippingFee: number; notes: string }
+
+const SHIPPING_FEE: Record<string, number> = { YAMATO: 100, SEVEN: 60, SELF: 0 }
+
+function emptyManualOrder(): ManualOrderForm {
+  return {
+    orderNumber: '',
+    createdAt: new Date().toISOString().slice(0, 16),
+    customerName: '',
+    phone: '',
+    email: '',
+    address: '',
+    shippingMethod: 'YAMATO',
+    paymentMethod: 'TRANSFER',
+    status: 'CONFIRMED',
+    items: [{ productId: '', size: '100g', quantity: 1, price: 0 }],
+    shippingFee: 100,
+    notes: '',
+  }
+}
 
 const SHIPPING_LABELS: Record<string, string> = { YAMATO: '黑貓', SEVEN: '7-11', SELF: '自取' }
 const PAYMENT_LABELS: Record<string, string> = { COD: '貨到付款', TRANSFER: '銀行轉帳' }
@@ -30,19 +52,83 @@ export default function AdminPage() {
   const [showPostForm, setShowPostForm] = useState(false)
   const [editPost, setEditPost] = useState<Post | null>(null)
   const [postForm, setPostForm] = useState({ title: '', category: 'BEAN', excerpt: '', content: '', coverImage: '', isPublished: false })
+  const [products, setProducts] = useState<Product[]>([])
+  const [showManualOrderForm, setShowManualOrderForm] = useState(false)
+  const [manualOrder, setManualOrder] = useState<ManualOrderForm>(emptyManualOrder())
+  const [savingOrder, setSavingOrder] = useState(false)
 
   const headers = useCallback(() => ({ 'Content-Type': 'application/json', 'x-admin-pw': pw }), [pw])
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [oRes, pRes] = await Promise.all([
+    const [oRes, pRes, prodRes] = await Promise.all([
       fetch('/api/admin/orders', { headers: headers() }),
       fetch('/api/admin/posts', { headers: headers() }),
+      fetch('/api/admin/products', { headers: headers() }),
     ])
     if (oRes.ok) { setOrders(await oRes.json()); setAuthed(true) } else { alert('密碼錯誤') }
     if (pRes.ok) setPosts(await pRes.json())
+    if (prodRes.ok) setProducts(await prodRes.json())
     setLoading(false)
   }, [headers])
+
+  // Compute totals
+  const manualSubtotal = manualOrder.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
+  const manualTotal = manualSubtotal + (Number(manualOrder.shippingFee) || 0)
+
+  const updateManualItem = (idx: number, patch: Partial<ManualItem>) => {
+    setManualOrder(o => {
+      const items = [...o.items]
+      items[idx] = { ...items[idx], ...patch }
+      // auto-fill price when product/size changes
+      if (patch.productId || patch.size) {
+        const it = items[idx]
+        const prod = products.find(p => p.id === it.productId)
+        if (prod) {
+          items[idx].price = it.size === '200g' ? prod.price200g : prod.price100g
+        }
+      }
+      return { ...o, items }
+    })
+  }
+
+  const addManualItem = () => setManualOrder(o => ({ ...o, items: [...o.items, { productId: '', size: '100g', quantity: 1, price: 0 }] }))
+  const removeManualItem = (idx: number) => setManualOrder(o => ({ ...o, items: o.items.filter((_, i) => i !== idx) }))
+
+  const setShippingMethod = (method: string) => {
+    setManualOrder(o => ({ ...o, shippingMethod: method, shippingFee: SHIPPING_FEE[method] ?? o.shippingFee }))
+  }
+
+  const submitManualOrder = async () => {
+    if (!manualOrder.customerName || !manualOrder.phone) return alert('請填寫姓名與電話')
+    if (manualOrder.items.some(i => !i.productId)) return alert('每個品項都要選擇商品')
+    setSavingOrder(true)
+    const res = await fetch('/api/admin/orders', {
+      method: 'POST',
+      headers: headers(),
+      body: JSON.stringify({
+        ...manualOrder,
+        subtotal: manualSubtotal,
+        total: manualTotal,
+        createdAt: manualOrder.createdAt ? new Date(manualOrder.createdAt).toISOString() : undefined,
+      }),
+    })
+    setSavingOrder(false)
+    if (res.ok) {
+      const created = await res.json()
+      setOrders(o => [created, ...o])
+      setShowManualOrderForm(false)
+      setManualOrder(emptyManualOrder())
+    } else {
+      const err = await res.json().catch(() => ({ error: '建立失敗' }))
+      alert(err.error || '建立失敗')
+    }
+  }
+
+  const openManualOrderForm = () => {
+    setManualOrder(emptyManualOrder())
+    setShowManualOrderForm(true)
+  }
 
   const updateOrderStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/orders/${id}`, { method: 'PATCH', headers: headers(), body: JSON.stringify({ status }) })
@@ -109,10 +195,124 @@ export default function AdminPage() {
       {/* Orders */}
       {tab === 'orders' && (
         <>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
             <h2 className="text-xl" style={{ color: 'var(--brown)' }}>訂單管理</h2>
-            <button onClick={fetchAll} className="text-xs underline hover:opacity-70" style={{ color: 'var(--muted)' }}>重新整理</button>
+            <div className="flex items-center gap-3">
+              <button onClick={openManualOrderForm} className="px-4 py-2 text-xs tracking-widest hover:opacity-80" style={{ background: 'var(--brown)', color: 'white' }}>
+                + 手動新增訂單
+              </button>
+              <button onClick={fetchAll} className="text-xs underline hover:opacity-70" style={{ color: 'var(--muted)' }}>重新整理</button>
+            </div>
           </div>
+
+          {/* Manual Order Form */}
+          {showManualOrderForm && (
+            <div className="mb-8 p-6 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+              <h3 className="text-base font-semibold mb-6" style={{ color: 'var(--brown)' }}>手動新增訂單</h3>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>訂單編號（留空自動產生）</label>
+                  <input placeholder="例：LC20260514ABCD" value={manualOrder.orderNumber} onChange={e => setManualOrder(o => ({ ...o, orderNumber: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>訂購日期</label>
+                  <input type="datetime-local" value={manualOrder.createdAt} onChange={e => setManualOrder(o => ({ ...o, createdAt: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>姓名 *</label>
+                  <input placeholder="客戶姓名" value={manualOrder.customerName} onChange={e => setManualOrder(o => ({ ...o, customerName: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>電話 *</label>
+                  <input placeholder="0912345678" value={manualOrder.phone} onChange={e => setManualOrder(o => ({ ...o, phone: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>地址</label>
+                  <input placeholder="收貨地址" value={manualOrder.address} onChange={e => setManualOrder(o => ({ ...o, address: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Email（選填）</label>
+                  <input placeholder="email@example.com" value={manualOrder.email} onChange={e => setManualOrder(o => ({ ...o, email: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>運送方式</label>
+                    <select value={manualOrder.shippingMethod} onChange={e => setShippingMethod(e.target.value)} className={inputClass} style={inputStyle}>
+                      <option value="YAMATO">黑貓 (NT$100)</option>
+                      <option value="SEVEN">7-11 (NT$60)</option>
+                      <option value="SELF">自取 (免運)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>付款方式</label>
+                    <select value={manualOrder.paymentMethod} onChange={e => setManualOrder(o => ({ ...o, paymentMethod: e.target.value }))} className={inputClass} style={inputStyle}>
+                      <option value="TRANSFER">銀行轉帳</option>
+                      <option value="COD">貨到付款</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items */}
+              <div className="mb-4">
+                <label className="text-xs block mb-2" style={{ color: 'var(--muted)' }}>品項</label>
+                <div className="space-y-2">
+                  {manualOrder.items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                      <select value={item.productId} onChange={e => updateManualItem(idx, { productId: e.target.value })} className="col-span-5 px-2 py-2 text-sm outline-none" style={inputStyle}>
+                        <option value="">選擇商品</option>
+                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      </select>
+                      <select value={item.size} onChange={e => updateManualItem(idx, { size: e.target.value as '100g' | '200g' })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle}>
+                        <option value="100g">100g</option>
+                        <option value="200g">200g</option>
+                      </select>
+                      <input type="number" min="1" placeholder="數量" value={item.quantity} onChange={e => updateManualItem(idx, { quantity: Number(e.target.value) })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle} />
+                      <input type="number" min="0" placeholder="單價" value={item.price} onChange={e => updateManualItem(idx, { price: Number(e.target.value) })} className="col-span-2 px-2 py-2 text-sm outline-none" style={inputStyle} />
+                      <button onClick={() => removeManualItem(idx)} disabled={manualOrder.items.length === 1} className="col-span-1 text-xs hover:opacity-70 disabled:opacity-30" style={{ color: '#C4A4A4' }}>移除</button>
+                    </div>
+                  ))}
+                </div>
+                <button onClick={addManualItem} className="mt-2 text-xs underline hover:opacity-70" style={{ color: 'var(--brown)' }}>+ 加一個品項</button>
+              </div>
+
+              {/* Totals */}
+              <div className="grid md:grid-cols-3 gap-4 mb-4 p-4 rounded-sm" style={{ background: 'var(--bg)' }}>
+                <div className="text-sm" style={{ color: 'var(--text)' }}>
+                  <span style={{ color: 'var(--muted)' }}>小計：</span>NT${manualSubtotal}
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>運費</label>
+                  <input type="number" min="0" value={manualOrder.shippingFee} onChange={e => setManualOrder(o => ({ ...o, shippingFee: Number(e.target.value) }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="text-base font-semibold flex items-end" style={{ color: 'var(--brown)' }}>
+                  總計：NT${manualTotal}
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>狀態</label>
+                  <select value={manualOrder.status} onChange={e => setManualOrder(o => ({ ...o, status: e.target.value }))} className={inputClass} style={inputStyle}>
+                    {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>備註</label>
+                  <input placeholder="選填" value={manualOrder.notes} onChange={e => setManualOrder(o => ({ ...o, notes: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button onClick={submitManualOrder} disabled={savingOrder} className="px-6 py-2 text-sm tracking-widest hover:opacity-80 disabled:opacity-50" style={{ background: 'var(--brown)', color: 'white' }}>
+                  {savingOrder ? '儲存中...' : '建立訂單'}
+                </button>
+                <button onClick={() => setShowManualOrderForm(false)} className="px-6 py-2 text-sm hover:opacity-70" style={{ color: 'var(--muted)' }}>取消</button>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-2 mb-6 flex-wrap">
             {['ALL', ...Object.keys(STATUS_LABELS)].map(s => (
               <button key={s} onClick={() => setOrderFilter(s)} className="px-3 py-1 text-xs transition-all"
