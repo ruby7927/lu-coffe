@@ -6,6 +6,7 @@ export async function GET(request: NextRequest) {
   if (pw !== process.env.ADMIN_PASSWORD) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const products = await prisma.product.findMany({
+    where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
   })
   return Response.json(products)
