@@ -102,7 +102,7 @@ export default async function Home() {
           <p className="text-xs tracking-[0.3em] mb-6" style={{ color: 'var(--brown-light)' }}>OUR STORY</p>
           <blockquote className="text-base md:text-lg leading-loose mb-8" style={{ color: 'var(--text)' }}>
             「嚕咖的名字，來自我家狗狗嚕咪。<br />
-            那一刻突然懂了——好的生活，不需要很複雜。<br />
+            那一刻突然懂了好的生活，不需要很複雜。<br />
             一杯咖啡、一隻狗、陽光照進來。」
           </blockquote>
           <Link href="/about" className="text-sm tracking-widest underline underline-offset-4 hover:opacity-70" style={{ color: 'var(--brown)' }}>
