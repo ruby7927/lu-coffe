@@ -76,7 +76,7 @@ export default function PrivacyPage() {
 
             <div>
               <h3 className="font-semibold mb-2">4. 您的權利</h3>
-              <p>您有權查詢、更正或要求刪除您的個人資料。如需行使上述權利，請透過 Instagram 私訊 @wonmiao_lucoffee 聯繫我們。</p>
+              <p>您有權查詢、更正或要求刪除您的個人資料。如需行使上述權利，請透過 Instagram 私訊 @Lucoffee2026 聯繫我們。</p>
             </div>
 
             <div>
@@ -88,9 +88,9 @@ export default function PrivacyPage() {
 
         <div className="pt-4 text-xs" style={{ color: 'var(--muted)' }}>
           如有任何疑問，歡迎透過 Instagram 私訊聯繫：
-          <a href="https://www.instagram.com/wonmiao_lucoffee" target="_blank" rel="noopener noreferrer"
+          <a href="https://www.instagram.com/Lucoffee2026" target="_blank" rel="noopener noreferrer"
             className="ml-1 underline underline-offset-2 hover:opacity-70" style={{ color: 'var(--brown)' }}>
-            @wonmiao_lucoffee
+            @Lucoffee2026
           </a>
         </div>
       </div>

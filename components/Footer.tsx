@@ -17,7 +17,7 @@ export default function Footer() {
           嚕咪陪著我們，用一杯好咖啡，找回生活的節奏。
         </p>
         <a
-          href="https://www.instagram.com/wonmiao_lucoffee?igsh=MWZ5d25pZTh5ZmVmeA%3D%3D&utm_source=qr"
+          href="https://www.instagram.com/Lucoffee2026"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-sm tracking-wider hover:opacity-70 transition-opacity mb-10"
@@ -28,7 +28,7 @@ export default function Footer() {
             <circle cx="12" cy="12" r="4" />
             <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
           </svg>
-          @wonmiao_lucoffee
+          @Lucoffee2026
         </a>
         <p className="text-xs" style={{ color: 'var(--muted)' }}>
           © 2025 嚕咖 Lu coffee · 台灣精品咖啡豆
