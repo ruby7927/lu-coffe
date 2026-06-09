@@ -5,7 +5,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: '豆單｜嚕咖 Lu coffee',
-  description: '台灣精品咖啡豆，淺焙手沖推薦。衣索比亞耶加雪菲、哥倫比亞薇拉，以及每季限定豆。',
+  description: '台灣精品咖啡豆，半磅 (227g) 包裝。特調藍山阿拉比卡、衣索比亞耶加雪菲 G2、衣索比亞古吉罕貝拉 G1，淺焙手沖推薦。',
 }
 
 export const dynamic = 'force-dynamic'
