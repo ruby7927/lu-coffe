@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
+import PostContent from '@/components/PostContent'
 import type { Metadata } from 'next'
 
 export const revalidate = 60
@@ -46,14 +48,12 @@ export default async function PostPage({ params }: Props) {
       </p>
 
       {post.coverImage && (
-        <div className="mb-10 rounded-sm overflow-hidden">
-          <img src={post.coverImage} alt={post.title} className="w-full object-cover" />
+        <div className="relative w-full aspect-[16/10] mb-10 rounded-sm overflow-hidden" style={{ background: '#E8E0D5' }}>
+          <Image src={post.coverImage} alt={post.title} fill priority sizes="(max-width: 768px) 100vw, 672px" className="object-cover" />
         </div>
       )}
 
-      <div className="text-base leading-loose whitespace-pre-wrap" style={{ color: 'var(--text)' }}>
-        {post.content}
-      </div>
+      <PostContent content={post.content} />
 
       <div className="mt-16 pt-8 text-center" style={{ borderTop: '1px solid var(--cream)' }}>
         <Link href="/blog" className="text-sm tracking-widest underline underline-offset-4 hover:opacity-70" style={{ color: 'var(--brown)' }}>

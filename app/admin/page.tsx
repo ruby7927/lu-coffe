@@ -12,7 +12,47 @@ const CATEGORY_LABELS: Record<string, string> = { BEAN: '豆子介紹', BREW: '�
 type OrderItem = { id: string; productId: string; size: string; quantity: number; price: number; product: { name: string } }
 type Order = { id: string; orderNumber: string; customerName: string; phone: string; email: string | null; address: string; shippingMethod: string; paymentMethod: string; status: string; subtotal: number; shippingFee: number; total: number; notes: string | null; createdAt: string; items: OrderItem[] }
 type Post = { id: string; slug: string; title: string; category: string; excerpt: string; content: string; coverImage: string | null; isPublished: boolean; publishedAt: string }
-type Product = { id: string; name: string; priceRegular: number; priceCommunity: number }
+type Product = {
+  id: string
+  slug: string
+  name: string
+  origin: string
+  process: string
+  roastLevel: string
+  flavorNotes: string[]
+  description: string
+  imageUrl: string | null
+  priceRegular: number
+  priceCommunity: number
+  isActive: boolean
+  isSeasonal: boolean
+  sortOrder: number
+}
+type ProductForm = {
+  slug: string
+  name: string
+  origin: string
+  process: string
+  roastLevel: string
+  flavorNotesText: string  // comma-separated
+  description: string
+  imageUrl: string
+  priceRegular: number
+  priceCommunity: number
+  isActive: boolean
+  isSeasonal: boolean
+  sortOrder: number
+}
+
+function emptyProductForm(): ProductForm {
+  return {
+    slug: `product-${Date.now().toString(36)}`,
+    name: '', origin: '', process: '', roastLevel: '',
+    flavorNotesText: '', description: '', imageUrl: '',
+    priceRegular: 0, priceCommunity: 0,
+    isActive: true, isSeasonal: false, sortOrder: 0,
+  }
+}
 type PriceTier = 'REGULAR' | 'COMMUNITY'
 type ManualItem = { productId: string; tier: PriceTier; quantity: number; price: number }
 
@@ -48,7 +88,7 @@ const inputClass = "w-full px-3 py-2 text-sm outline-none"
 export default function AdminPage() {
   const [pw, setPw] = useState('')
   const [authed, setAuthed] = useState(false)
-  const [tab, setTab] = useState<'orders' | 'posts' | 'settings'>('orders')
+  const [tab, setTab] = useState<'orders' | 'products' | 'posts' | 'settings'>('orders')
   const [orders, setOrders] = useState<Order[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
@@ -64,6 +104,13 @@ export default function AdminPage() {
   // Password change form
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwSaving, setPwSaving] = useState(false)
+  // Order search
+  const [orderSearch, setOrderSearch] = useState('')
+  // Product management
+  const [showProductForm, setShowProductForm] = useState(false)
+  const [editingProductId, setEditingProductId] = useState<string | null>(null)
+  const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm())
+  const [savingProduct, setSavingProduct] = useState(false)
 
   const headers = useCallback(() => ({ 'Content-Type': 'application/json', 'x-admin-pw': pw }), [pw])
 
@@ -240,7 +287,119 @@ export default function AdminPage() {
     setShowPostForm(true)
   }
 
-  const filteredOrders = orderFilter === 'ALL' ? orders : orders.filter(o => o.status === orderFilter)
+  const activeProducts = products.filter(p => p.isActive)
+
+  const filteredOrders = orders
+    .filter(o => orderFilter === 'ALL' || o.status === orderFilter)
+    .filter(o => {
+      const q = orderSearch.trim().toLowerCase()
+      if (!q) return true
+      return [o.orderNumber, o.customerName, o.phone, o.email || '', o.address]
+        .some(v => v.toLowerCase().includes(q))
+    })
+
+  const deleteOrder = async (order: Order) => {
+    if (!confirm(`確定刪除訂單 ${order.orderNumber}？此動作無法復原。`)) return
+    const res = await fetch(`/api/admin/orders/${order.id}`, { method: 'DELETE', headers: headers() })
+    if (res.ok) setOrders(o => o.filter(x => x.id !== order.id))
+    else alert('刪除失敗')
+  }
+
+  // ===== Product handlers =====
+  const openNewProduct = () => {
+    setEditingProductId(null)
+    setProductForm(emptyProductForm())
+    setShowProductForm(true)
+  }
+
+  const openEditProduct = (p: Product) => {
+    setEditingProductId(p.id)
+    setProductForm({
+      slug: p.slug,
+      name: p.name,
+      origin: p.origin,
+      process: p.process,
+      roastLevel: p.roastLevel,
+      flavorNotesText: p.flavorNotes.join(', '),
+      description: p.description,
+      imageUrl: p.imageUrl || '',
+      priceRegular: p.priceRegular,
+      priceCommunity: p.priceCommunity,
+      isActive: p.isActive,
+      isSeasonal: p.isSeasonal,
+      sortOrder: p.sortOrder,
+    })
+    setShowProductForm(true)
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
+  }
+
+  const saveProduct = async () => {
+    if (!productForm.name) return alert('請填寫商品名稱')
+    if (!productForm.slug) return alert('請填寫 slug')
+    setSavingProduct(true)
+    const flavorNotes = productForm.flavorNotesText
+      .split(/[,，、]/)
+      .map(s => s.trim())
+      .filter(Boolean)
+    const payload = {
+      slug: productForm.slug,
+      name: productForm.name,
+      origin: productForm.origin,
+      process: productForm.process,
+      roastLevel: productForm.roastLevel,
+      flavorNotes,
+      description: productForm.description,
+      imageUrl: productForm.imageUrl || null,
+      priceRegular: productForm.priceRegular,
+      priceCommunity: productForm.priceCommunity,
+      isActive: productForm.isActive,
+      isSeasonal: productForm.isSeasonal,
+      sortOrder: productForm.sortOrder,
+    }
+    const url = editingProductId ? `/api/admin/products/${editingProductId}` : '/api/admin/products'
+    const method = editingProductId ? 'PATCH' : 'POST'
+    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) })
+    setSavingProduct(false)
+    if (res.ok) {
+      const saved = await res.json()
+      if (editingProductId) {
+        setProducts(ps => ps.map(x => x.id === editingProductId ? saved : x))
+      } else {
+        setProducts(ps => [...ps, saved])
+      }
+      setShowProductForm(false)
+      setEditingProductId(null)
+      setProductForm(emptyProductForm())
+    } else {
+      const err = await res.json().catch(() => ({ error: '儲存失敗' }))
+      alert(err.error || '儲存失敗')
+    }
+  }
+
+  const toggleProductActive = async (p: Product) => {
+    const res = await fetch(`/api/admin/products/${p.id}`, {
+      method: 'PATCH', headers: headers(),
+      body: JSON.stringify({ isActive: !p.isActive }),
+    })
+    if (res.ok) {
+      const saved = await res.json()
+      setProducts(ps => ps.map(x => x.id === p.id ? saved : x))
+    }
+  }
+
+  const deleteProduct = async (p: Product) => {
+    if (!confirm(`確定刪除「${p.name}」？若有訂單關聯會改為下架。`)) return
+    const res = await fetch(`/api/admin/products/${p.id}`, { method: 'DELETE', headers: headers() })
+    if (res.ok) {
+      const data = await res.json()
+      if (data.softDeleted) {
+        setProducts(ps => ps.map(x => x.id === p.id ? data.product : x))
+        alert('此商品已有訂單關聯，改為下架')
+      } else {
+        setProducts(ps => ps.filter(x => x.id !== p.id))
+      }
+    } else alert('刪除失敗')
+  }
 
   if (!authed) return (
     <div className="max-w-sm mx-auto px-6 py-32">
@@ -258,11 +417,11 @@ export default function AdminPage() {
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Tabs */}
       <div className="flex gap-6 mb-10" style={{ borderBottom: '1px solid var(--cream)' }}>
-        {(['orders', 'posts', 'settings'] as const).map(t => (
+        {(['orders', 'products', 'posts', 'settings'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="pb-3 text-sm tracking-wide transition-colors"
             style={{ color: tab === t ? 'var(--brown)' : 'var(--muted)', borderBottom: tab === t ? '2px solid var(--brown)' : '2px solid transparent' }}>
-            {t === 'orders' ? '訂單管理' : t === 'posts' ? '文章管理' : '設定'}
+            {t === 'orders' ? '訂單管理' : t === 'products' ? '商品管理' : t === 'posts' ? '文章管理' : '設定'}
           </button>
         ))}
       </div>
@@ -337,7 +496,7 @@ export default function AdminPage() {
                     <div key={idx} className="grid grid-cols-12 gap-2 items-center">
                       <select value={item.productId} onChange={e => updateManualItem(idx, { productId: e.target.value })} className="col-span-4 px-2 py-2 text-sm outline-none" style={inputStyle}>
                         <option value="">選擇商品（半磅 227g）</option>
-                        {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                        {activeProducts.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                       </select>
                       <select value={item.tier} onChange={e => updateManualItem(idx, { tier: e.target.value as PriceTier })} className="col-span-3 px-2 py-2 text-sm outline-none" style={inputStyle}>
                         <option value="REGULAR">一般價</option>
@@ -388,6 +547,16 @@ export default function AdminPage() {
             </div>
           )}
 
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="搜尋：訂單編號 / 姓名 / 電話 / Email / 地址"
+              value={orderSearch}
+              onChange={e => setOrderSearch(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            />
+          </div>
           <div className="flex gap-2 mb-6 flex-wrap">
             {['ALL', ...Object.keys(STATUS_LABELS)].map(s => (
               <button key={s} onClick={() => setOrderFilter(s)} className="px-3 py-1 text-xs transition-all"
@@ -406,6 +575,7 @@ export default function AdminPage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => openEditOrder(order)} className="text-xs hover:opacity-70 underline underline-offset-2" style={{ color: 'var(--brown)' }}>編輯</button>
+                    <button onClick={() => deleteOrder(order)} className="text-xs hover:opacity-70 underline underline-offset-2" style={{ color: '#C4A4A4' }}>刪除</button>
                     <select value={order.status} onChange={e => updateOrderStatus(order.id, e.target.value)}
                       className="text-xs px-2 py-1 outline-none cursor-pointer"
                       style={{ border: `1px solid ${STATUS_COLORS[order.status]}`, color: STATUS_COLORS[order.status], background: 'white' }}>
@@ -435,6 +605,116 @@ export default function AdminPage() {
         </>
       )}
 
+      {/* Products */}
+      {tab === 'products' && (
+        <>
+          <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+            <h2 className="text-xl" style={{ color: 'var(--brown)' }}>商品管理</h2>
+            <button onClick={openNewProduct} className="px-4 py-2 text-xs tracking-widest hover:opacity-80" style={{ background: 'var(--brown)', color: 'white' }}>
+              + 新增商品
+            </button>
+          </div>
+
+          {showProductForm && (
+            <div className="mb-8 p-6 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+              <h3 className="text-base font-semibold mb-6" style={{ color: 'var(--brown)' }}>{editingProductId ? '編輯商品' : '新增商品'}</h3>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>商品名稱 *</label>
+                  <input value={productForm.name} onChange={e => setProductForm(f => ({ ...f, name: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>Slug *（網址 ID，英數+橫線）</label>
+                  <input value={productForm.slug} onChange={e => setProductForm(f => ({ ...f, slug: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>產地</label>
+                  <input value={productForm.origin} onChange={e => setProductForm(f => ({ ...f, origin: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>處理法</label>
+                    <input value={productForm.process} onChange={e => setProductForm(f => ({ ...f, process: e.target.value }))} className={inputClass} style={inputStyle} />
+                  </div>
+                  <div>
+                    <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>烘焙度</label>
+                    <input value={productForm.roastLevel} onChange={e => setProductForm(f => ({ ...f, roastLevel: e.target.value }))} className={inputClass} style={inputStyle} />
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>風味標籤（用逗號分隔）</label>
+                  <input placeholder="花香, 檸檬, 紅茶尾韻" value={productForm.flavorNotesText} onChange={e => setProductForm(f => ({ ...f, flavorNotesText: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>商品描述</label>
+                  <textarea rows={3} value={productForm.description} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))} className={`${inputClass} resize-none`} style={inputStyle} />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>圖片路徑（如 /images/foo.png）</label>
+                  <input value={productForm.imageUrl} onChange={e => setProductForm(f => ({ ...f, imageUrl: e.target.value }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>一般價 (NT$)</label>
+                  <input type="number" min="0" value={productForm.priceRegular} onChange={e => setProductForm(f => ({ ...f, priceRegular: Number(e.target.value) }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>社區價 (NT$)</label>
+                  <input type="number" min="0" value={productForm.priceCommunity} onChange={e => setProductForm(f => ({ ...f, priceCommunity: Number(e.target.value) }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div>
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>排序（小數字優先）</label>
+                  <input type="number" value={productForm.sortOrder} onChange={e => setProductForm(f => ({ ...f, sortOrder: Number(e.target.value) }))} className={inputClass} style={inputStyle} />
+                </div>
+                <div className="flex items-end gap-6">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
+                    <input type="checkbox" checked={productForm.isActive} onChange={e => setProductForm(f => ({ ...f, isActive: e.target.checked }))} />
+                    上架
+                  </label>
+                  <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
+                    <input type="checkbox" checked={productForm.isSeasonal} onChange={e => setProductForm(f => ({ ...f, isSeasonal: e.target.checked }))} />
+                    季節限定
+                  </label>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button onClick={saveProduct} disabled={savingProduct} className="px-6 py-2 text-sm tracking-widest hover:opacity-80 disabled:opacity-50" style={{ background: 'var(--brown)', color: 'white' }}>
+                  {savingProduct ? '儲存中...' : (editingProductId ? '儲存變更' : '建立商品')}
+                </button>
+                <button onClick={() => { setShowProductForm(false); setEditingProductId(null) }} className="px-6 py-2 text-sm hover:opacity-70" style={{ color: 'var(--muted)' }}>取消</button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            {products.map(p => (
+              <div key={p.id} className="flex items-center gap-4 p-4 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid #D4C4B0' }}>
+                <div className="w-16 h-16 shrink-0 rounded-sm overflow-hidden flex items-center justify-center text-xs" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
+                  {p.imageUrl ? <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" /> : '無圖'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
+                    <span className="text-xs" style={{ color: p.isActive ? 'var(--sage)' : 'var(--muted)' }}>{p.isActive ? '上架中' : '已下架'}</span>
+                    {p.isSeasonal && <span className="text-xs px-1.5" style={{ background: 'var(--sage)', color: 'white' }}>季節限定</span>}
+                  </div>
+                  <p className="text-sm font-semibold truncate" style={{ color: 'var(--brown)' }}>{p.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                    一般 NT${p.priceRegular} · 社區 NT${p.priceCommunity} · {p.roastLevel}・{p.process}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3 shrink-0">
+                  <button onClick={() => toggleProductActive(p)} className="text-xs hover:opacity-70" style={{ color: 'var(--brown)' }}>
+                    {p.isActive ? '下架' : '上架'}
+                  </button>
+                  <button onClick={() => openEditProduct(p)} className="text-xs hover:opacity-70" style={{ color: 'var(--brown)' }}>編輯</button>
+                  <button onClick={() => deleteProduct(p)} className="text-xs hover:opacity-70" style={{ color: '#C4A4A4' }}>刪除</button>
+                </div>
+              </div>
+            ))}
+            {products.length === 0 && <p className="text-center py-10 text-sm" style={{ color: 'var(--muted)' }}>還沒有商品</p>}
+          </div>
+        </>
+      )}
+
       {/* Posts */}
       {tab === 'posts' && (
         <>
@@ -458,8 +738,13 @@ export default function AdminPage() {
                 </select>
                 <input placeholder="摘要（列表頁顯示）" value={postForm.excerpt} onChange={e => setPostForm(f => ({ ...f, excerpt: e.target.value }))} className={inputClass} style={inputStyle} />
                 <input placeholder="封面圖片路徑（選填，如 /images/xxx.jpg）" value={postForm.coverImage} onChange={e => setPostForm(f => ({ ...f, coverImage: e.target.value }))} className={inputClass} style={inputStyle} />
-                <textarea placeholder="文章內容（按 Enter 換行）" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
-                  rows={12} className={`${inputClass} resize-none`} style={inputStyle} />
+                <div>
+                  <textarea placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
+                    rows={14} className={`${inputClass} resize-none`} style={inputStyle} />
+                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
+                    支援：<code># 大標題</code> <code>## 小標題</code> <code>- 條列</code> <code>![圖說](/images/foo.jpg)</code>（圖片放在 public/images/）
+                  </p>
+                </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
                   <input type="checkbox" checked={postForm.isPublished} onChange={e => setPostForm(f => ({ ...f, isPublished: e.target.checked }))} />
                   立即發佈
