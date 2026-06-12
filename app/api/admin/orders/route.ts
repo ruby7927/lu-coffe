@@ -1,10 +1,6 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-function checkAuth(request: NextRequest) {
-  const pw = request.headers.get('x-admin-pw')
-  return pw === process.env.ADMIN_PASSWORD
-}
+import { checkAdminRequest } from '@/lib/auth'
 
 function generateOrderNumber() {
   const now = new Date()
@@ -14,7 +10,7 @@ function generateOrderNumber() {
 }
 
 export async function GET(request: NextRequest) {
-  if (!checkAuth(request)) return Response.json({ error: 'unauthorized' }, { status: 401 })
+  if (!(await checkAdminRequest(request))) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const orders = await prisma.order.findMany({
     include: { items: { include: { product: true } } },
@@ -24,7 +20,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!checkAuth(request)) return Response.json({ error: 'unauthorized' }, { status: 401 })
+  if (!(await checkAdminRequest(request))) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const body = await request.json()
   const {
@@ -48,14 +44,12 @@ export async function POST(request: NextRequest) {
     return Response.json({ error: '請填寫姓名、電話與至少一個品項' }, { status: 400 })
   }
 
-  // Validate items
   for (const i of items) {
     if (!i.productId || !i.size || !i.quantity || i.price == null) {
       return Response.json({ error: '品項資料不完整' }, { status: 400 })
     }
   }
 
-  // Check orderNumber uniqueness if user provided one
   const finalOrderNumber = orderNumber?.trim() || generateOrderNumber()
   if (orderNumber?.trim()) {
     const exists = await prisma.order.findUnique({ where: { orderNumber: finalOrderNumber } })

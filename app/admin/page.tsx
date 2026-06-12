@@ -9,7 +9,7 @@ const STATUS_COLORS: Record<string, string> = {
 }
 const CATEGORY_LABELS: Record<string, string> = { BEAN: '豆子介紹', BREW: '沖煮教學' }
 
-type OrderItem = { id: string; size: string; quantity: number; price: number; product: { name: string } }
+type OrderItem = { id: string; productId: string; size: string; quantity: number; price: number; product: { name: string } }
 type Order = { id: string; orderNumber: string; customerName: string; phone: string; email: string | null; address: string; shippingMethod: string; paymentMethod: string; status: string; subtotal: number; shippingFee: number; total: number; notes: string | null; createdAt: string; items: OrderItem[] }
 type Post = { id: string; slug: string; title: string; category: string; excerpt: string; content: string; coverImage: string | null; isPublished: boolean; publishedAt: string }
 type Product = { id: string; name: string; priceRegular: number; priceCommunity: number }
@@ -48,7 +48,7 @@ const inputClass = "w-full px-3 py-2 text-sm outline-none"
 export default function AdminPage() {
   const [pw, setPw] = useState('')
   const [authed, setAuthed] = useState(false)
-  const [tab, setTab] = useState<'orders' | 'posts'>('orders')
+  const [tab, setTab] = useState<'orders' | 'posts' | 'settings'>('orders')
   const [orders, setOrders] = useState<Order[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
@@ -60,6 +60,10 @@ export default function AdminPage() {
   const [showManualOrderForm, setShowManualOrderForm] = useState(false)
   const [manualOrder, setManualOrder] = useState<ManualOrderForm>(emptyManualOrder())
   const [savingOrder, setSavingOrder] = useState(false)
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null)
+  // Password change form
+  const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
+  const [pwSaving, setPwSaving] = useState(false)
 
   const headers = useCallback(() => ({ 'Content-Type': 'application/json', 'x-admin-pw': pw }), [pw])
 
@@ -107,8 +111,10 @@ export default function AdminPage() {
     if (!manualOrder.customerName || !manualOrder.phone) return alert('請填寫姓名與電話')
     if (manualOrder.items.some(i => !i.productId)) return alert('每個品項都要選擇商品')
     setSavingOrder(true)
-    const res = await fetch('/api/admin/orders', {
-      method: 'POST',
+    const url = editingOrderId ? `/api/admin/orders/${editingOrderId}` : '/api/admin/orders'
+    const method = editingOrderId ? 'PATCH' : 'POST'
+    const res = await fetch(url, {
+      method,
       headers: headers(),
       body: JSON.stringify({
         ...manualOrder,
@@ -125,19 +131,78 @@ export default function AdminPage() {
     })
     setSavingOrder(false)
     if (res.ok) {
-      const created = await res.json()
-      setOrders(o => [created, ...o])
+      const saved = await res.json()
+      if (editingOrderId) {
+        setOrders(o => o.map(x => x.id === editingOrderId ? saved : x))
+      } else {
+        setOrders(o => [saved, ...o])
+      }
       setShowManualOrderForm(false)
+      setEditingOrderId(null)
       setManualOrder(emptyManualOrder())
     } else {
-      const err = await res.json().catch(() => ({ error: '建立失敗' }))
-      alert(err.error || '建立失敗')
+      const err = await res.json().catch(() => ({ error: '儲存失敗' }))
+      alert(err.error || '儲存失敗')
     }
   }
 
   const openManualOrderForm = () => {
+    setEditingOrderId(null)
     setManualOrder(emptyManualOrder())
     setShowManualOrderForm(true)
+  }
+
+  const openEditOrder = (order: Order) => {
+    setEditingOrderId(order.id)
+    // Convert OrderItem.size string back to tier
+    const items: ManualItem[] = order.items.map(i => ({
+      productId: i.productId || (products.find(p => p.name === i.product.name)?.id ?? ''),
+      tier: i.size.includes('社區') ? 'COMMUNITY' : 'REGULAR',
+      quantity: i.quantity,
+      price: i.price,
+    }))
+    setManualOrder({
+      orderNumber: order.orderNumber,
+      createdAt: new Date(order.createdAt).toISOString().slice(0, 16),
+      customerName: order.customerName,
+      phone: order.phone,
+      email: order.email || '',
+      address: order.address || '',
+      shippingMethod: order.shippingMethod,
+      paymentMethod: order.paymentMethod,
+      status: order.status,
+      items: items.length > 0 ? items : [{ productId: '', tier: 'REGULAR', quantity: 1, price: 0 }],
+      shippingFee: order.shippingFee,
+      notes: order.notes || '',
+    })
+    setShowManualOrderForm(true)
+    // Scroll to form
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
+  }
+
+  const cancelOrderForm = () => {
+    setShowManualOrderForm(false)
+    setEditingOrderId(null)
+  }
+
+  const changePassword = async () => {
+    if (pwForm.next !== pwForm.confirm) return alert('新密碼與確認密碼不一致')
+    if (pwForm.next.length < 6) return alert('新密碼至少 6 個字元')
+    setPwSaving(true)
+    const res = await fetch('/api/admin/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+    })
+    setPwSaving(false)
+    if (res.ok) {
+      alert('密碼已更新！下次登入請用新密碼。')
+      setPw(pwForm.next) // keep current session valid
+      setPwForm({ current: '', next: '', confirm: '' })
+    } else {
+      const err = await res.json().catch(() => ({ error: '更新失敗' }))
+      alert(err.error || '更新失敗')
+    }
   }
 
   const updateOrderStatus = async (id: string, status: string) => {
@@ -193,11 +258,11 @@ export default function AdminPage() {
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Tabs */}
       <div className="flex gap-6 mb-10" style={{ borderBottom: '1px solid var(--cream)' }}>
-        {(['orders', 'posts'] as const).map(t => (
+        {(['orders', 'posts', 'settings'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="pb-3 text-sm tracking-wide transition-colors"
             style={{ color: tab === t ? 'var(--brown)' : 'var(--muted)', borderBottom: tab === t ? '2px solid var(--brown)' : '2px solid transparent' }}>
-            {t === 'orders' ? '訂單管理' : '文章管理'}
+            {t === 'orders' ? '訂單管理' : t === 'posts' ? '文章管理' : '設定'}
           </button>
         ))}
       </div>
@@ -218,7 +283,7 @@ export default function AdminPage() {
           {/* Manual Order Form */}
           {showManualOrderForm && (
             <div className="mb-8 p-6 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
-              <h3 className="text-base font-semibold mb-6" style={{ color: 'var(--brown)' }}>手動新增訂單</h3>
+              <h3 className="text-base font-semibold mb-6" style={{ color: 'var(--brown)' }}>{editingOrderId ? '編輯訂單' : '手動新增訂單'}</h3>
 
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div>
@@ -316,9 +381,9 @@ export default function AdminPage() {
 
               <div className="flex gap-3">
                 <button onClick={submitManualOrder} disabled={savingOrder} className="px-6 py-2 text-sm tracking-widest hover:opacity-80 disabled:opacity-50" style={{ background: 'var(--brown)', color: 'white' }}>
-                  {savingOrder ? '儲存中...' : '建立訂單'}
+                  {savingOrder ? '儲存中...' : (editingOrderId ? '儲存變更' : '建立訂單')}
                 </button>
-                <button onClick={() => setShowManualOrderForm(false)} className="px-6 py-2 text-sm hover:opacity-70" style={{ color: 'var(--muted)' }}>取消</button>
+                <button onClick={cancelOrderForm} className="px-6 py-2 text-sm hover:opacity-70" style={{ color: 'var(--muted)' }}>取消</button>
               </div>
             </div>
           )}
@@ -339,11 +404,14 @@ export default function AdminPage() {
                     <span className="font-semibold text-sm" style={{ color: 'var(--brown)' }}>{order.orderNumber}</span>
                     <span className="text-xs ml-3" style={{ color: 'var(--muted)' }}>{new Date(order.createdAt).toLocaleString('zh-TW')}</span>
                   </div>
-                  <select value={order.status} onChange={e => updateOrderStatus(order.id, e.target.value)}
-                    className="text-xs px-2 py-1 outline-none cursor-pointer"
-                    style={{ border: `1px solid ${STATUS_COLORS[order.status]}`, color: STATUS_COLORS[order.status], background: 'white' }}>
-                    {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                  </select>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => openEditOrder(order)} className="text-xs hover:opacity-70 underline underline-offset-2" style={{ color: 'var(--brown)' }}>編輯</button>
+                    <select value={order.status} onChange={e => updateOrderStatus(order.id, e.target.value)}
+                      className="text-xs px-2 py-1 outline-none cursor-pointer"
+                      style={{ border: `1px solid ${STATUS_COLORS[order.status]}`, color: STATUS_COLORS[order.status], background: 'white' }}>
+                      {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                    </select>
+                  </div>
                 </div>
                 <div className="grid md:grid-cols-2 gap-4 text-sm">
                   <div className="space-y-1" style={{ color: 'var(--text)' }}>
@@ -424,6 +492,37 @@ export default function AdminPage() {
               </div>
             ))}
             {posts.length === 0 && <p className="text-center py-10 text-sm" style={{ color: 'var(--muted)' }}>還沒有文章</p>}
+          </div>
+        </>
+      )}
+
+      {/* Settings */}
+      {tab === 'settings' && (
+        <>
+          <h2 className="text-xl mb-6" style={{ color: 'var(--brown)' }}>設定</h2>
+
+          <div className="max-w-md p-6 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+            <h3 className="text-base font-semibold mb-2" style={{ color: 'var(--brown)' }}>修改後台密碼</h3>
+            <p className="text-xs mb-5" style={{ color: 'var(--muted)' }}>修改後請用新密碼登入。至少 6 個字元。</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>目前密碼</label>
+                <input type="password" value={pwForm.current} onChange={e => setPwForm(f => ({ ...f, current: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>新密碼</label>
+                <input type="password" value={pwForm.next} onChange={e => setPwForm(f => ({ ...f, next: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div>
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>再次輸入新密碼</label>
+                <input type="password" value={pwForm.confirm} onChange={e => setPwForm(f => ({ ...f, confirm: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <button onClick={changePassword} disabled={pwSaving || !pwForm.current || !pwForm.next}
+                className="px-6 py-2 text-sm tracking-widest hover:opacity-80 disabled:opacity-50"
+                style={{ background: 'var(--brown)', color: 'white' }}>
+                {pwSaving ? '更新中...' : '更新密碼'}
+              </button>
+            </div>
           </div>
         </>
       )}

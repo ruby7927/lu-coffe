@@ -182,6 +182,11 @@ exports.Prisma.PostScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SettingScalarFieldEnum = {
+  key: 'key',
+  value: 'value'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -208,7 +213,8 @@ exports.Prisma.ModelName = {
   Product: 'Product',
   Order: 'Order',
   OrderItem: 'OrderItem',
-  Post: 'Post'
+  Post: 'Post',
+  Setting: 'Setting'
 };
 
 /**

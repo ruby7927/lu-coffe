@@ -74,6 +74,11 @@ model Post {
   updatedAt   DateTime  @updatedAt
 }
 
+model Setting {
+  key   String @id
+  value String
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
