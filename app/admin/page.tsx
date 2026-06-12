@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '待確認', CONFIRMED: '已確認', SHIPPED: '已出貨', DELIVERED: '已到貨', CANCELLED: '已取消',
@@ -111,6 +111,54 @@ export default function AdminPage() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm())
   const [savingProduct, setSavingProduct] = useState(false)
+  // Upload state
+  const [uploading, setUploading] = useState(false)
+  const contentRef = useRef<HTMLTextAreaElement>(null)
+
+  // Upload helper: returns URL or null on failure
+  const uploadImageFile = async (file: File, folder: string): Promise<string | null> => {
+    if (file.size > 5 * 1024 * 1024) { alert('檔案請小於 5 MB'); return null }
+    if (!file.type.startsWith('image/')) { alert('請選擇圖片檔'); return null }
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    fd.append('folder', folder)
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        headers: { 'x-admin-pw': pw },
+        body: fd,
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: '上傳失敗' }))
+        alert(err.error || '上傳失敗')
+        return null
+      }
+      const { url } = await res.json()
+      return url
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const insertAtCursor = (text: string) => {
+    const ta = contentRef.current
+    if (!ta) {
+      setPostForm(f => ({ ...f, content: f.content + (f.content ? '\n\n' : '') + text }))
+      return
+    }
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const before = postForm.content.slice(0, start)
+    const after = postForm.content.slice(end)
+    const newContent = before + text + after
+    setPostForm(f => ({ ...f, content: newContent }))
+    setTimeout(() => {
+      ta.focus()
+      const pos = start + text.length
+      ta.setSelectionRange(pos, pos)
+    }, 0)
+  }
 
   const headers = useCallback(() => ({ 'Content-Type': 'application/json', 'x-admin-pw': pw }), [pw])
 
@@ -650,8 +698,26 @@ export default function AdminPage() {
                   <textarea rows={3} value={productForm.description} onChange={e => setProductForm(f => ({ ...f, description: e.target.value }))} className={`${inputClass} resize-none`} style={inputStyle} />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>圖片路徑（如 /images/foo.png）</label>
-                  <input value={productForm.imageUrl} onChange={e => setProductForm(f => ({ ...f, imageUrl: e.target.value }))} className={inputClass} style={inputStyle} />
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>商品圖片</label>
+                  <div className="flex items-start gap-3">
+                    {productForm.imageUrl && (
+                      <img src={productForm.imageUrl} alt="預覽" className="w-20 h-20 object-cover rounded-sm shrink-0" style={{ background: '#E8E0D5' }} />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input value={productForm.imageUrl} placeholder="上傳後會自動填入，或手動填 /images/foo.png" onChange={e => setProductForm(f => ({ ...f, imageUrl: e.target.value }))} className={inputClass} style={inputStyle} />
+                      <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
+                        📷 {uploading ? '上傳中...' : '上傳圖片'}
+                        <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                          onChange={async e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            const url = await uploadImageFile(file, 'products')
+                            if (url) setProductForm(f => ({ ...f, imageUrl: url }))
+                            e.target.value = ''
+                          }} />
+                      </label>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>一般價 (NT$)</label>
@@ -737,13 +803,47 @@ export default function AdminPage() {
                   <option value="BREW">沖煮教學</option>
                 </select>
                 <input placeholder="摘要（列表頁顯示）" value={postForm.excerpt} onChange={e => setPostForm(f => ({ ...f, excerpt: e.target.value }))} className={inputClass} style={inputStyle} />
-                <input placeholder="封面圖片路徑（選填，如 /images/xxx.jpg）" value={postForm.coverImage} onChange={e => setPostForm(f => ({ ...f, coverImage: e.target.value }))} className={inputClass} style={inputStyle} />
                 <div>
-                  <textarea placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
+                  <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>封面圖片（選填）</label>
+                  <div className="flex items-start gap-3">
+                    {postForm.coverImage && (
+                      <img src={postForm.coverImage} alt="預覽" className="w-20 h-20 object-cover rounded-sm shrink-0" style={{ background: '#E8E0D5' }} />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <input placeholder="上傳後會自動填入，或手動填路徑" value={postForm.coverImage} onChange={e => setPostForm(f => ({ ...f, coverImage: e.target.value }))} className={inputClass} style={inputStyle} />
+                      <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
+                        📷 {uploading ? '上傳中...' : '上傳封面'}
+                        <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                          onChange={async e => {
+                            const file = e.target.files?.[0]
+                            if (!file) return
+                            const url = await uploadImageFile(file, 'posts')
+                            if (url) setPostForm(f => ({ ...f, coverImage: url }))
+                            e.target.value = ''
+                          }} />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <textarea ref={contentRef} placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
                     rows={14} className={`${inputClass} resize-none`} style={inputStyle} />
-                  <p className="text-xs mt-1" style={{ color: 'var(--muted)' }}>
-                    支援：<code># 大標題</code> <code>## 小標題</code> <code>- 條列</code> <code>![圖說](/images/foo.jpg)</code>（圖片放在 public/images/）
-                  </p>
+                  <div className="flex items-center gap-3 mt-2 flex-wrap">
+                    <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
+                      📷 {uploading ? '上傳中...' : '在游標位置插入圖片'}
+                      <input type="file" accept="image/*" className="hidden" disabled={uploading}
+                        onChange={async e => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          const url = await uploadImageFile(file, 'posts')
+                          if (url) insertAtCursor(`\n\n![](${url})\n\n`)
+                          e.target.value = ''
+                        }} />
+                    </label>
+                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                      支援：<code># 大標</code> <code>## 小標</code> <code>- 條列</code> <code>![圖說](url)</code>
+                    </p>
+                  </div>
                 </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
                   <input type="checkbox" checked={postForm.isPublished} onChange={e => setPostForm(f => ({ ...f, isPublished: e.target.checked }))} />
