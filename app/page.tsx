@@ -61,7 +61,7 @@ export default async function Home() {
       <section className="max-w-5xl mx-auto px-4 md:px-6 py-14 md:py-20">
         <div className="text-center mb-10 md:mb-12">
           <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>OUR BEANS</p>
-          <h2 className="text-2xl" style={{ color: 'var(--brown)' }}>本月豆單</h2>
+          <h2 className="text-2xl" style={{ color: 'var(--brown)' }}>當前豆單</h2>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
           {products.map(p => (
