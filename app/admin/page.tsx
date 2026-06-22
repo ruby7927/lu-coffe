@@ -106,6 +106,9 @@ export default function AdminPage() {
   const [pwSaving, setPwSaving] = useState(false)
   // Order search
   const [orderSearch, setOrderSearch] = useState('')
+  // Stats filter: which statuses to include in product totals
+  const [statsScope, setStatsScope] = useState<'CONFIRMED' | 'ACTIVE' | 'ALL'>('CONFIRMED')
+  const [showStats, setShowStats] = useState(true)
   // Product management
   const [showProductForm, setShowProductForm] = useState(false)
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
@@ -336,6 +339,33 @@ export default function AdminPage() {
   }
 
   const activeProducts = products.filter(p => p.isActive)
+
+  // ===== Product stats from orders =====
+  const statsStatusSet =
+    statsScope === 'CONFIRMED' ? new Set(['CONFIRMED'])
+    : statsScope === 'ACTIVE'  ? new Set(['CONFIRMED', 'SHIPPED', 'DELIVERED'])
+    : new Set<string>() // ALL → empty means include every status
+
+  const productStats = (() => {
+    const map = new Map<string, { name: string; total: number; community: number; regular: number; revenue: number }>()
+    for (const order of orders) {
+      if (statsScope !== 'ALL' && !statsStatusSet.has(order.status)) continue
+      for (const item of order.items) {
+        const key = item.product.name
+        const entry = map.get(key) || { name: key, total: 0, community: 0, regular: 0, revenue: 0 }
+        entry.total += item.quantity
+        entry.revenue += item.price * item.quantity
+        if (item.size.includes('社區')) entry.community += item.quantity
+        else entry.regular += item.quantity
+        map.set(key, entry)
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => b.total - a.total)
+  })()
+
+  const statsOrderCount = orders.filter(o => statsScope === 'ALL' || statsStatusSet.has(o.status)).length
+  const statsTotalQty = productStats.reduce((s, p) => s + p.total, 0)
+  const statsTotalRevenue = productStats.reduce((s, p) => s + p.revenue, 0)
 
   const filteredOrders = orders
     .filter(o => orderFilter === 'ALL' || o.status === orderFilter)
@@ -594,6 +624,64 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* Product stats panel */}
+          <div className="mb-6 p-5 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+            <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+              <h3 className="text-sm font-semibold" style={{ color: 'var(--brown)' }}>📊 品項數量統計</h3>
+              <div className="flex items-center gap-3">
+                <select value={statsScope} onChange={e => setStatsScope(e.target.value as 'CONFIRMED' | 'ACTIVE' | 'ALL')}
+                  className="text-xs px-2 py-1 outline-none" style={inputStyle}>
+                  <option value="CONFIRMED">已確認</option>
+                  <option value="ACTIVE">已確認 + 已出貨 + 已到貨</option>
+                  <option value="ALL">全部狀態</option>
+                </select>
+                <button onClick={() => setShowStats(s => !s)} className="text-xs underline hover:opacity-70" style={{ color: 'var(--muted)' }}>
+                  {showStats ? '收合' : '展開'}
+                </button>
+              </div>
+            </div>
+            {showStats && (
+              productStats.length === 0 ? (
+                <p className="text-sm" style={{ color: 'var(--muted)' }}>此狀態沒有訂單</p>
+              ) : (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--brown-light)' }}>
+                          <th className="text-left py-2 font-normal text-xs">商品</th>
+                          <th className="text-right py-2 font-normal text-xs">社區</th>
+                          <th className="text-right py-2 font-normal text-xs">一般</th>
+                          <th className="text-right py-2 font-normal text-xs">總包數</th>
+                          <th className="text-right py-2 font-normal text-xs">金額</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productStats.map(p => (
+                          <tr key={p.name} style={{ color: 'var(--text)', borderBottom: '1px solid rgba(184, 149, 106, 0.2)' }}>
+                            <td className="py-2">{p.name}</td>
+                            <td className="text-right py-2">{p.community}</td>
+                            <td className="text-right py-2">{p.regular}</td>
+                            <td className="text-right py-2 font-semibold" style={{ color: 'var(--brown)' }}>{p.total}</td>
+                            <td className="text-right py-2">NT${p.revenue.toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                      <tfoot>
+                        <tr style={{ color: 'var(--brown)', fontWeight: 600 }}>
+                          <td className="pt-3 text-xs">合計</td>
+                          <td colSpan={2} className="text-right pt-3 text-xs" style={{ color: 'var(--muted)' }}>{statsOrderCount} 筆訂單</td>
+                          <td className="text-right pt-3">{statsTotalQty} 包</td>
+                          <td className="text-right pt-3">NT${statsTotalRevenue.toLocaleString()}</td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
+                </>
+              )
+            )}
+          </div>
 
           <div className="mb-4">
             <input
