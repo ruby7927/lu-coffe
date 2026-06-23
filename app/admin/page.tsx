@@ -88,7 +88,7 @@ const inputClass = "w-full px-3 py-2 text-sm outline-none"
 export default function AdminPage() {
   const [pw, setPw] = useState('')
   const [authed, setAuthed] = useState(false)
-  const [tab, setTab] = useState<'orders' | 'products' | 'posts' | 'settings'>('orders')
+  const [tab, setTab] = useState<'orders' | 'products' | 'posts' | 'ledger' | 'settings'>('orders')
   const [orders, setOrders] = useState<Order[]>([])
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(false)
@@ -116,6 +116,12 @@ export default function AdminPage() {
   const [editingProductId, setEditingProductId] = useState<string | null>(null)
   const [productForm, setProductForm] = useState<ProductForm>(emptyProductForm())
   const [savingProduct, setSavingProduct] = useState(false)
+  // Ledger
+  type LedgerEntry = { id: string; date: string; name: string; expense: number; income: number; notes: string | null }
+  const [ledger, setLedger] = useState<LedgerEntry[]>([])
+  const [ledgerForm, setLedgerForm] = useState({ date: new Date().toISOString().slice(0, 10), name: '', expense: '', income: '', notes: '' })
+  const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null)
+  const [savingLedger, setSavingLedger] = useState(false)
   // Upload state
   const [uploading, setUploading] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -169,16 +175,84 @@ export default function AdminPage() {
 
   const fetchAll = useCallback(async () => {
     setLoading(true)
-    const [oRes, pRes, prodRes] = await Promise.all([
+    const [oRes, pRes, prodRes, lRes] = await Promise.all([
       fetch('/api/admin/orders', { headers: headers() }),
       fetch('/api/admin/posts', { headers: headers() }),
       fetch('/api/admin/products', { headers: headers() }),
+      fetch('/api/admin/ledger', { headers: headers() }),
     ])
     if (oRes.ok) { setOrders(await oRes.json()); setAuthed(true) } else { alert('密碼錯誤') }
     if (pRes.ok) setPosts(await pRes.json())
     if (prodRes.ok) setProducts(await prodRes.json())
+    if (lRes.ok) setLedger(await lRes.json())
     setLoading(false)
   }, [headers])
+
+  // ===== Ledger handlers =====
+  const emptyLedgerForm = () => ({ date: new Date().toISOString().slice(0, 10), name: '', expense: '', income: '', notes: '' })
+
+  const saveLedger = async () => {
+    if (!ledgerForm.date || !ledgerForm.name) return alert('請填寫日期與名稱')
+    const exp = Number(ledgerForm.expense) || 0
+    const inc = Number(ledgerForm.income) || 0
+    if (exp === 0 && inc === 0) return alert('請填寫支出或收入金額')
+
+    setSavingLedger(true)
+    const payload = { date: ledgerForm.date, name: ledgerForm.name, expense: exp, income: inc, notes: ledgerForm.notes }
+    const url = editingLedgerId ? `/api/admin/ledger/${editingLedgerId}` : '/api/admin/ledger'
+    const method = editingLedgerId ? 'PATCH' : 'POST'
+    const res = await fetch(url, { method, headers: headers(), body: JSON.stringify(payload) })
+    setSavingLedger(false)
+    if (res.ok) {
+      const saved = await res.json()
+      if (editingLedgerId) {
+        setLedger(l => l.map(x => x.id === editingLedgerId ? saved : x).sort((a, b) => b.date.localeCompare(a.date)))
+      } else {
+        setLedger(l => [saved, ...l].sort((a, b) => b.date.localeCompare(a.date)))
+      }
+      setLedgerForm(emptyLedgerForm())
+      setEditingLedgerId(null)
+    } else {
+      const err = await res.json().catch(() => ({ error: '儲存失敗' }))
+      alert(err.error || '儲存失敗')
+    }
+  }
+
+  const editLedger = (entry: LedgerEntry) => {
+    setEditingLedgerId(entry.id)
+    setLedgerForm({
+      date: entry.date.slice(0, 10),
+      name: entry.name,
+      expense: entry.expense ? String(entry.expense) : '',
+      income: entry.income ? String(entry.income) : '',
+      notes: entry.notes || '',
+    })
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
+  }
+
+  const deleteLedger = async (entry: LedgerEntry) => {
+    if (!confirm(`確定刪除「${entry.name}」？`)) return
+    const res = await fetch(`/api/admin/ledger/${entry.id}`, { method: 'DELETE', headers: headers() })
+    if (res.ok) setLedger(l => l.filter(x => x.id !== entry.id))
+    else alert('刪除失敗')
+  }
+
+  // Compute running totals (entries shown desc, totals computed asc then displayed)
+  const ledgerWithTotals = (() => {
+    const asc = [...ledger].sort((a, b) =>
+      a.date === b.date ? 0 : a.date < b.date ? -1 : 1
+    )
+    let running = 0
+    const balanceMap = new Map<string, number>()
+    for (const e of asc) {
+      running += (e.income || 0) - (e.expense || 0)
+      balanceMap.set(e.id, running)
+    }
+    return ledger.map(e => ({ ...e, balance: balanceMap.get(e.id) || 0 }))
+  })()
+  const ledgerTotalIncome = ledger.reduce((s, e) => s + (e.income || 0), 0)
+  const ledgerTotalExpense = ledger.reduce((s, e) => s + (e.expense || 0), 0)
+  const ledgerNet = ledgerTotalIncome - ledgerTotalExpense
 
   // Compute totals
   const manualSubtotal = manualOrder.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
@@ -506,11 +580,11 @@ export default function AdminPage() {
     <div className="max-w-5xl mx-auto px-6 py-12">
       {/* Tabs */}
       <div className="flex gap-6 mb-10" style={{ borderBottom: '1px solid var(--cream)' }}>
-        {(['orders', 'products', 'posts', 'settings'] as const).map(t => (
+        {(['orders', 'products', 'posts', 'ledger', 'settings'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="pb-3 text-sm tracking-wide transition-colors"
             style={{ color: tab === t ? 'var(--brown)' : 'var(--muted)', borderBottom: tab === t ? '2px solid var(--brown)' : '2px solid transparent' }}>
-            {t === 'orders' ? '訂單管理' : t === 'products' ? '商品管理' : t === 'posts' ? '文章管理' : '設定'}
+            {t === 'orders' ? '訂單管理' : t === 'products' ? '商品管理' : t === 'posts' ? '文章管理' : t === 'ledger' ? '記帳' : '設定'}
           </button>
         ))}
       </div>
@@ -984,6 +1058,112 @@ export default function AdminPage() {
               </div>
             ))}
             {posts.length === 0 && <p className="text-center py-10 text-sm" style={{ color: 'var(--muted)' }}>還沒有文章</p>}
+          </div>
+        </>
+      )}
+
+      {/* Ledger */}
+      {tab === 'ledger' && (
+        <>
+          <h2 className="text-xl mb-6" style={{ color: 'var(--brown)' }}>記帳</h2>
+
+          {/* Summary */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="p-4 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>總收入</p>
+              <p className="text-lg font-semibold" style={{ color: 'var(--sage)' }}>NT${ledgerTotalIncome.toLocaleString()}</p>
+            </div>
+            <div className="p-4 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>總支出</p>
+              <p className="text-lg font-semibold" style={{ color: '#C4A4A4' }}>NT${ledgerTotalExpense.toLocaleString()}</p>
+            </div>
+            <div className="p-4 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+              <p className="text-xs mb-1" style={{ color: 'var(--muted)' }}>淨額（總計）</p>
+              <p className="text-lg font-semibold" style={{ color: ledgerNet >= 0 ? 'var(--sage)' : '#C4A4A4' }}>
+                {ledgerNet >= 0 ? '+' : ''}NT${ledgerNet.toLocaleString()}
+              </p>
+            </div>
+          </div>
+
+          {/* Form */}
+          <div className="mb-8 p-6 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+            <h3 className="text-sm font-semibold mb-4" style={{ color: 'var(--brown)' }}>{editingLedgerId ? '編輯記錄' : '新增記錄'}</h3>
+            <div className="grid grid-cols-12 gap-3 items-end mb-3">
+              <div className="col-span-12 md:col-span-3">
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>日期 *</label>
+                <input type="date" value={ledgerForm.date} onChange={e => setLedgerForm(f => ({ ...f, date: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="col-span-12 md:col-span-4">
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>名稱 *</label>
+                <input placeholder="例：購買豆子、寄送費" value={ledgerForm.name} onChange={e => setLedgerForm(f => ({ ...f, name: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>支出</label>
+                <input type="number" min="0" placeholder="0" value={ledgerForm.expense} onChange={e => setLedgerForm(f => ({ ...f, expense: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="col-span-6 md:col-span-2">
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>收入</label>
+                <input type="number" min="0" placeholder="0" value={ledgerForm.income} onChange={e => setLedgerForm(f => ({ ...f, income: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              <div className="col-span-12 md:col-span-1">
+                <button onClick={saveLedger} disabled={savingLedger} className="w-full px-3 py-2 text-xs tracking-widest hover:opacity-80 disabled:opacity-50" style={{ background: 'var(--brown)', color: 'white' }}>
+                  {savingLedger ? '...' : (editingLedgerId ? '儲存' : '新增')}
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-12 gap-3 items-end">
+              <div className="col-span-12 md:col-span-11">
+                <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>備註（選填）</label>
+                <input value={ledgerForm.notes} onChange={e => setLedgerForm(f => ({ ...f, notes: e.target.value }))} className={inputClass} style={inputStyle} />
+              </div>
+              {editingLedgerId && (
+                <div className="col-span-12 md:col-span-1">
+                  <button onClick={() => { setEditingLedgerId(null); setLedgerForm(emptyLedgerForm()) }} className="w-full px-3 py-2 text-xs hover:opacity-70" style={{ color: 'var(--muted)' }}>取消</button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ color: 'var(--muted)', borderBottom: '1px solid var(--brown-light)' }}>
+                  <th className="text-left py-2 font-normal text-xs px-2">日期</th>
+                  <th className="text-left py-2 font-normal text-xs px-2">名稱</th>
+                  <th className="text-right py-2 font-normal text-xs px-2">支出</th>
+                  <th className="text-right py-2 font-normal text-xs px-2">收入</th>
+                  <th className="text-right py-2 font-normal text-xs px-2">總計</th>
+                  <th className="text-left py-2 font-normal text-xs px-2">備註</th>
+                  <th className="py-2 font-normal text-xs px-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {ledgerWithTotals.map(entry => (
+                  <tr key={entry.id} style={{ color: 'var(--text)', borderBottom: '1px solid rgba(184, 149, 106, 0.2)' }}>
+                    <td className="py-2 px-2 text-xs whitespace-nowrap">{entry.date.slice(0, 10)}</td>
+                    <td className="py-2 px-2">{entry.name}</td>
+                    <td className="py-2 px-2 text-right" style={{ color: entry.expense ? '#C4A4A4' : 'var(--muted)' }}>
+                      {entry.expense ? `-${entry.expense.toLocaleString()}` : '—'}
+                    </td>
+                    <td className="py-2 px-2 text-right" style={{ color: entry.income ? 'var(--sage)' : 'var(--muted)' }}>
+                      {entry.income ? `+${entry.income.toLocaleString()}` : '—'}
+                    </td>
+                    <td className="py-2 px-2 text-right font-semibold" style={{ color: entry.balance >= 0 ? 'var(--brown)' : '#C4A4A4' }}>
+                      {entry.balance >= 0 ? '' : ''}{entry.balance.toLocaleString()}
+                    </td>
+                    <td className="py-2 px-2 text-xs" style={{ color: 'var(--muted)' }}>{entry.notes || ''}</td>
+                    <td className="py-2 px-2 text-right whitespace-nowrap">
+                      <button onClick={() => editLedger(entry)} className="text-xs hover:opacity-70 mr-3" style={{ color: 'var(--brown)' }}>編輯</button>
+                      <button onClick={() => deleteLedger(entry)} className="text-xs hover:opacity-70" style={{ color: '#C4A4A4' }}>刪除</button>
+                    </td>
+                  </tr>
+                ))}
+                {ledger.length === 0 && (
+                  <tr><td colSpan={7} className="text-center py-10 text-sm" style={{ color: 'var(--muted)' }}>還沒有記錄</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </>
       )}

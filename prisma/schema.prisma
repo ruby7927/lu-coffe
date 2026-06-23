@@ -79,6 +79,19 @@ model Setting {
   value String
 }
 
+model LedgerEntry {
+  id        String   @id @default(cuid())
+  date      DateTime
+  name      String
+  expense   Int      @default(0)
+  income    Int      @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED

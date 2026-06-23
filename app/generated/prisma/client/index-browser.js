@@ -187,6 +187,17 @@ exports.Prisma.SettingScalarFieldEnum = {
   value: 'value'
 };
 
+exports.Prisma.LedgerEntryScalarFieldEnum = {
+  id: 'id',
+  date: 'date',
+  name: 'name',
+  expense: 'expense',
+  income: 'income',
+  notes: 'notes',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -214,7 +225,8 @@ exports.Prisma.ModelName = {
   Order: 'Order',
   OrderItem: 'OrderItem',
   Post: 'Post',
-  Setting: 'Setting'
+  Setting: 'Setting',
+  LedgerEntry: 'LedgerEntry'
 };
 
 /**
