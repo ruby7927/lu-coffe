@@ -122,6 +122,9 @@ export default function AdminPage() {
   const [ledgerForm, setLedgerForm] = useState({ date: new Date().toISOString().slice(0, 10), name: '', expense: '', income: '', notes: '' })
   const [editingLedgerId, setEditingLedgerId] = useState<string | null>(null)
   const [savingLedger, setSavingLedger] = useState(false)
+  const [ledgerFrom, setLedgerFrom] = useState('')
+  const [ledgerTo, setLedgerTo] = useState('')
+  const [ledgerMonthFilter, setLedgerMonthFilter] = useState('')
   // Upload state
   const [uploading, setUploading] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -237,9 +240,15 @@ export default function AdminPage() {
     else alert('刪除失敗')
   }
 
-  // Compute running totals (entries shown desc, totals computed asc then displayed)
+  // Filter by date range, then compute running totals
+  const filteredLedger = ledger.filter(e => {
+    const d = e.date.slice(0, 10)
+    if (ledgerFrom && d < ledgerFrom) return false
+    if (ledgerTo && d > ledgerTo) return false
+    return true
+  })
   const ledgerWithTotals = (() => {
-    const asc = [...ledger].sort((a, b) =>
+    const asc = [...filteredLedger].sort((a, b) =>
       a.date === b.date ? 0 : a.date < b.date ? -1 : 1
     )
     let running = 0
@@ -248,11 +257,28 @@ export default function AdminPage() {
       running += (e.income || 0) - (e.expense || 0)
       balanceMap.set(e.id, running)
     }
-    return ledger.map(e => ({ ...e, balance: balanceMap.get(e.id) || 0 }))
+    return filteredLedger.map(e => ({ ...e, balance: balanceMap.get(e.id) || 0 }))
   })()
-  const ledgerTotalIncome = ledger.reduce((s, e) => s + (e.income || 0), 0)
-  const ledgerTotalExpense = ledger.reduce((s, e) => s + (e.expense || 0), 0)
+  const ledgerTotalIncome = filteredLedger.reduce((s, e) => s + (e.income || 0), 0)
+  const ledgerTotalExpense = filteredLedger.reduce((s, e) => s + (e.expense || 0), 0)
   const ledgerNet = ledgerTotalIncome - ledgerTotalExpense
+
+  const setLedgerThisMonth = () => {
+    const now = new Date()
+    const y = now.getFullYear(), m = String(now.getMonth() + 1).padStart(2, '0')
+    const last = new Date(y, now.getMonth() + 1, 0).getDate()
+    setLedgerFrom(`${y}-${m}-01`)
+    setLedgerTo(`${y}-${m}-${String(last).padStart(2, '0')}`)
+  }
+  const setLedgerLastMonth = () => {
+    const now = new Date()
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0')
+    const last = new Date(y, d.getMonth() + 1, 0).getDate()
+    setLedgerFrom(`${y}-${m}-01`)
+    setLedgerTo(`${y}-${m}-${String(last).padStart(2, '0')}`)
+  }
+  const clearLedgerRange = () => { setLedgerFrom(''); setLedgerTo('') }
 
   // Compute totals
   const manualSubtotal = manualOrder.items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.quantity) || 0), 0)
@@ -1066,6 +1092,26 @@ export default function AdminPage() {
       {tab === 'ledger' && (
         <>
           <h2 className="text-xl mb-6" style={{ color: 'var(--brown)' }}>記帳</h2>
+
+          {/* Date range filter */}
+          <div className="mb-4 p-4 rounded-sm flex items-end gap-3 flex-wrap" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>起始日</label>
+              <input type="date" value={ledgerFrom} onChange={e => setLedgerFrom(e.target.value)} className="px-3 py-2 text-sm outline-none" style={inputStyle} />
+            </div>
+            <div>
+              <label className="text-xs block mb-1" style={{ color: 'var(--muted)' }}>結束日</label>
+              <input type="date" value={ledgerTo} onChange={e => setLedgerTo(e.target.value)} className="px-3 py-2 text-sm outline-none" style={inputStyle} />
+            </div>
+            <div className="flex gap-2">
+              <button onClick={setLedgerThisMonth} className="px-3 py-2 text-xs hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>本月</button>
+              <button onClick={setLedgerLastMonth} className="px-3 py-2 text-xs hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>上個月</button>
+              <button onClick={clearLedgerRange} className="px-3 py-2 text-xs hover:opacity-70" style={{ color: 'var(--muted)' }}>清除</button>
+            </div>
+            <div className="ml-auto text-xs" style={{ color: 'var(--muted)' }}>
+              共 {filteredLedger.length} 筆 {(ledgerFrom || ledgerTo) ? '（已篩選）' : ''}
+            </div>
+          </div>
 
           {/* Summary */}
           <div className="grid grid-cols-3 gap-3 mb-6">
