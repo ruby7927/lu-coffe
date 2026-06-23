@@ -108,6 +108,8 @@ export default function AdminPage() {
   const [orderSearch, setOrderSearch] = useState('')
   // Stats filter: which statuses to include in product totals
   const [statsScope, setStatsScope] = useState<'CONFIRMED' | 'ACTIVE' | 'ALL'>('CONFIRMED')
+  const [statsDateFrom, setStatsDateFrom] = useState('')
+  const [statsDateTo, setStatsDateTo] = useState('')
   const [showStats, setShowStats] = useState(true)
   // Product management
   const [showProductForm, setShowProductForm] = useState(false)
@@ -346,10 +348,19 @@ export default function AdminPage() {
     : statsScope === 'ACTIVE'  ? new Set(['CONFIRMED', 'SHIPPED', 'DELIVERED'])
     : new Set<string>() // ALL → empty means include every status
 
+  const orderDateStr = (iso: string) => new Date(iso).toISOString().slice(0, 10)
+
+  const statsFilter = (order: Order) => {
+    if (statsScope !== 'ALL' && !statsStatusSet.has(order.status)) return false
+    if (statsDateFrom && orderDateStr(order.createdAt) < statsDateFrom) return false
+    if (statsDateTo && orderDateStr(order.createdAt) > statsDateTo) return false
+    return true
+  }
+
   const productStats = (() => {
     const map = new Map<string, { name: string; total: number; community: number; regular: number; revenue: number }>()
     for (const order of orders) {
-      if (statsScope !== 'ALL' && !statsStatusSet.has(order.status)) continue
+      if (!statsFilter(order)) continue
       for (const item of order.items) {
         const key = item.product.name
         const entry = map.get(key) || { name: key, total: 0, community: 0, regular: 0, revenue: 0 }
@@ -363,7 +374,7 @@ export default function AdminPage() {
     return Array.from(map.values()).sort((a, b) => b.total - a.total)
   })()
 
-  const statsOrderCount = orders.filter(o => statsScope === 'ALL' || statsStatusSet.has(o.status)).length
+  const statsOrderCount = orders.filter(statsFilter).length
   const statsTotalQty = productStats.reduce((s, p) => s + p.total, 0)
   const statsTotalRevenue = productStats.reduce((s, p) => s + p.revenue, 0)
 
@@ -629,7 +640,15 @@ export default function AdminPage() {
           <div className="mb-6 p-5 rounded-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)' }}>
             <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
               <h3 className="text-sm font-semibold" style={{ color: 'var(--brown)' }}>📊 品項數量統計</h3>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1">
+                  <input type="date" value={statsDateFrom} onChange={e => setStatsDateFrom(e.target.value)} className="text-xs px-2 py-1 outline-none" style={inputStyle} />
+                  <span className="text-xs" style={{ color: 'var(--muted)' }}>至</span>
+                  <input type="date" value={statsDateTo} onChange={e => setStatsDateTo(e.target.value)} className="text-xs px-2 py-1 outline-none" style={inputStyle} />
+                  {(statsDateFrom || statsDateTo) && (
+                    <button onClick={() => { setStatsDateFrom(''); setStatsDateTo('') }} className="text-xs underline hover:opacity-70" style={{ color: 'var(--muted)' }}>清除</button>
+                  )}
+                </div>
                 <select value={statsScope} onChange={e => setStatsScope(e.target.value as 'CONFIRMED' | 'ACTIVE' | 'ALL')}
                   className="text-xs px-2 py-1 outline-none" style={inputStyle}>
                   <option value="CONFIRMED">已確認</option>
