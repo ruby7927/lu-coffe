@@ -62,10 +62,15 @@ type ManualOrderForm = { orderNumber: string; createdAt: string; customerName: s
 
 const SHIPPING_FEE: Record<string, number> = { YAMATO: 100, SEVEN: 60, SELF: 0 }
 
+function toLocalInput(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function emptyManualOrder(): ManualOrderForm {
   return {
     orderNumber: '',
-    createdAt: new Date().toISOString().slice(0, 16),
+    createdAt: toLocalInput(new Date()),
     customerName: '',
     phone: '',
     email: '',
@@ -104,8 +109,10 @@ export default function AdminPage() {
   // Password change form
   const [pwForm, setPwForm] = useState({ current: '', next: '', confirm: '' })
   const [pwSaving, setPwSaving] = useState(false)
-  // Order search
+  // Order search & date filter
   const [orderSearch, setOrderSearch] = useState('')
+  const [orderDateFrom, setOrderDateFrom] = useState('')
+  const [orderDateTo, setOrderDateTo] = useState('')
   // Stats filter: which statuses to include in product totals
   const [statsScope, setStatsScope] = useState<'CONFIRMED' | 'ACTIVE' | 'ALL'>('CONFIRMED')
   const [statsDateFrom, setStatsDateFrom] = useState('')
@@ -124,7 +131,6 @@ export default function AdminPage() {
   const [savingLedger, setSavingLedger] = useState(false)
   const [ledgerFrom, setLedgerFrom] = useState('')
   const [ledgerTo, setLedgerTo] = useState('')
-  const [ledgerMonthFilter, setLedgerMonthFilter] = useState('')
   // Upload state
   const [uploading, setUploading] = useState(false)
   const contentRef = useRef<HTMLTextAreaElement>(null)
@@ -363,7 +369,7 @@ export default function AdminPage() {
     }))
     setManualOrder({
       orderNumber: order.orderNumber,
-      createdAt: new Date(order.createdAt).toISOString().slice(0, 16),
+      createdAt: toLocalInput(new Date(order.createdAt)),
       customerName: order.customerName,
       phone: order.phone,
       email: order.email || '',
@@ -478,7 +484,13 @@ export default function AdminPage() {
   const statsTotalQty = productStats.reduce((s, p) => s + p.total, 0)
   const statsTotalRevenue = productStats.reduce((s, p) => s + p.revenue, 0)
 
-  const filteredOrders = orders
+  const dateFilteredOrders = orders.filter(o => {
+    if (orderDateFrom && orderDateStr(o.createdAt) < orderDateFrom) return false
+    if (orderDateTo && orderDateStr(o.createdAt) > orderDateTo) return false
+    return true
+  })
+
+  const filteredOrders = dateFilteredOrders
     .filter(o => orderFilter === 'ALL' || o.status === orderFilter)
     .filter(o => {
       const q = orderSearch.trim().toLowerCase()
@@ -811,6 +823,15 @@ export default function AdminPage() {
               className={inputClass}
               style={inputStyle}
             />
+          </div>
+          <div className="flex items-center gap-1 mb-4 flex-wrap">
+            <span className="text-xs mr-1" style={{ color: 'var(--muted)' }}>下單日期</span>
+            <input type="date" value={orderDateFrom} onChange={e => setOrderDateFrom(e.target.value)} className="text-xs px-2 py-1 outline-none" style={inputStyle} />
+            <span className="text-xs" style={{ color: 'var(--muted)' }}>至</span>
+            <input type="date" value={orderDateTo} onChange={e => setOrderDateTo(e.target.value)} className="text-xs px-2 py-1 outline-none" style={inputStyle} />
+            {(orderDateFrom || orderDateTo) && (
+              <button onClick={() => { setOrderDateFrom(''); setOrderDateTo('') }} className="text-xs underline hover:opacity-70" style={{ color: 'var(--muted)' }}>清除</button>
+            )}
           </div>
           <div className="flex gap-2 mb-6 flex-wrap">
             {['ALL', ...Object.keys(STATUS_LABELS)].map(s => (
