@@ -8,7 +8,6 @@ export default async function Home() {
   const products = await prisma.product.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
-    take: 3,
   })
 
   return (
