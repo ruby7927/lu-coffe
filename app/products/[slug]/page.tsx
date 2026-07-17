@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
+import AddToCartButton from '@/components/AddToCartButton'
 
 export const revalidate = 60
 
@@ -66,11 +67,7 @@ export default async function ProductPage({ params }: Props) {
             </p>
           </div>
 
-          <a href="https://s.shopee.tw/10zagmy7Rk" target="_blank" rel="noopener noreferrer"
-            className="w-full flex items-center justify-center gap-2 py-3 text-sm tracking-widest transition-opacity hover:opacity-80"
-            style={{ background: 'var(--brown)', color: 'white' }}>
-            🛒 前往蝦皮下單
-          </a>
+          <AddToCartButton product={{ id: product.id, name: product.name, priceRegular: product.priceRegular }} />
         </div>
       </div>
     </div>

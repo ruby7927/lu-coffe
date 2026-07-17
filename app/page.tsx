@@ -35,11 +35,6 @@ export default async function Home() {
                 style={{ background: 'var(--brown)', color: 'white' }}>
                 看豆單
               </Link>
-              <a href="https://s.shopee.tw/10zagmy7Rk" target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-6 md:px-8 py-3 text-sm tracking-widest transition-opacity hover:opacity-80"
-                style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
-                🛒 蝦皮賣場
-              </a>
             </div>
           </div>
 
