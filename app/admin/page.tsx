@@ -62,9 +62,15 @@ type ManualOrderForm = { orderNumber: string; createdAt: string; customerName: s
 
 const SHIPPING_FEE: Record<string, number> = { YAMATO: 100, SEVEN: 60, SELF: 0 }
 
+const TZ = 'Asia/Taipei'
+
 function toLocalInput(d: Date): string {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  // sv-SE locale gives YYYY-MM-DD HH:MM — perfect for datetime-local
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false,
+  }).format(d).replace(' ', 'T')
 }
 
 function emptyManualOrder(): ManualOrderForm {
@@ -847,7 +853,7 @@ export default function AdminPage() {
                 <div className="flex items-start justify-between mb-3 flex-wrap gap-2">
                   <div>
                     <span className="font-semibold text-sm" style={{ color: 'var(--brown)' }}>{order.orderNumber}</span>
-                    <span className="text-xs ml-3" style={{ color: 'var(--muted)' }}>{new Date(order.createdAt).toLocaleString('zh-TW')}</span>
+                    <span className="text-xs ml-3" style={{ color: 'var(--muted)' }}>{new Date(order.createdAt).toLocaleString('zh-TW', { timeZone: TZ })}</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => openEditOrder(order)} className="text-xs hover:opacity-70 underline underline-offset-2" style={{ color: 'var(--brown)' }}>編輯</button>
