@@ -19,7 +19,7 @@ export default async function ProductsPage() {
     <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 md:py-16">
       <div className="text-center mb-10 md:mb-14">
         <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>SPECIALTY BEANS</p>
-        <h1 className="text-3xl" style={{ color: 'var(--brown)' }}>商品</h1>
+        <h1 className="text-3xl" style={{ color: 'var(--brown)' }}>豆單</h1>
         <p className="mt-4 text-sm leading-relaxed" style={{ color: 'var(--muted)' }}>
           每支豆子都是我們親自試喝篩選，適合手沖的淺焙風味。
         </p>
