@@ -34,6 +34,11 @@ export default async function Home() {
                 style={{ background: 'var(--brown)', color: 'white' }}>
                 看豆單
               </Link>
+              <a href="https://www.instagram.com/Lucoffee2026" target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center justify-center px-6 md:px-8 py-3 text-sm tracking-widest transition-opacity hover:opacity-80"
+                style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
+                前往 IG 下單
+              </a>
             </div>
           </div>
 
