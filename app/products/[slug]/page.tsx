@@ -2,7 +2,6 @@ import { prisma } from '@/lib/prisma'
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
-import AddToCartButton from '@/components/AddToCartButton'
 
 export const revalidate = 60
 
@@ -67,7 +66,6 @@ export default async function ProductPage({ params }: Props) {
             </p>
           </div>
 
-          <AddToCartButton product={{ id: product.id, name: product.name, priceRegular: product.priceRegular }} />
         </div>
       </div>
     </div>
