@@ -13,7 +13,7 @@ export default function AboutPage() {
       <div className="max-w-5xl mx-auto px-4 md:px-6 pt-6 md:pt-8">
         <div className="relative w-full aspect-[16/10] md:aspect-[16/8] overflow-hidden rounded-sm">
           <Image
-            src="/images/lumee3.jpg"
+            src="/images/lumee3.png"
             alt="嚕咪與 Lu Coffee"
             fill
             priority
