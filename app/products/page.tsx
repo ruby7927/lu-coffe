@@ -1,4 +1,3 @@
-import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import type { Metadata } from 'next'
@@ -17,7 +16,7 @@ export default async function ProductsPage() {
   })
 
   return (
-    <div className="max-w-5xl mx-auto px-4 md:px-6 py-12 md:py-16">
+    <div className="max-w-3xl mx-auto px-4 md:px-6 py-12 md:py-16">
       <div className="text-center mb-10 md:mb-14">
         <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>SPECIALTY BEANS</p>
         <h1 className="text-3xl" style={{ color: 'var(--brown)' }}>商品</h1>
@@ -26,46 +25,50 @@ export default async function ProductsPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
+      <div className="divide-y" style={{ borderColor: 'var(--cream)' }}>
         {products.map(p => (
-          <Link key={p.id} href={`/products/${p.slug}`}
-            className="group block rounded-sm overflow-hidden transition-shadow hover:shadow-md"
-            style={{ background: 'var(--cream)' }}>
-            <div className="relative aspect-square flex items-center justify-center text-xs" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
+          <div key={p.id} className="flex items-center gap-5 md:gap-8 py-7">
+            {/* Image */}
+            <div className="relative shrink-0 rounded-sm overflow-hidden"
+              style={{ width: 96, height: 96, background: '#E8E0D5' }}>
               {p.imageUrl
-                ? <Image
-                    src={p.imageUrl}
-                    alt={p.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                    className="object-cover"
-                  />
-                : '商品圖片'}
+                ? <Image src={p.imageUrl} alt={p.name} fill sizes="96px" className="object-cover" />
+                : null}
             </div>
-            <div className="p-5 md:p-6">
-              {p.isSeasonal && (
-                <span className="text-xs tracking-wider px-2 py-1 mb-3 inline-block" style={{ background: 'var(--sage)', color: 'white' }}>
-                  季節限定
-                </span>
-              )}
-              <h2 className="text-lg font-semibold mb-1" style={{ color: 'var(--brown)' }}>{p.name}</h2>
-              <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>{p.origin}・{p.roastLevel}・{p.process}</p>
-              <div className="flex flex-wrap gap-1 mb-4">
-                {p.flavorNotes.map(n => (
-                  <span key={n} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg)', color: 'var(--muted)' }}>{n}</span>
-                ))}
+
+            {/* Info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline flex-wrap gap-x-2 mb-2">
+                <h2 className="text-lg md:text-xl font-semibold" style={{ color: 'var(--brown)' }}>
+                  {p.name}
+                </h2>
+                {(p.process || p.roastLevel) && (
+                  <span className="text-xs md:text-sm" style={{ color: 'var(--muted)' }}>
+                    | {[p.process, p.roastLevel].filter(Boolean).join('　')}
+                  </span>
+                )}
+                {p.isSeasonal && (
+                  <span className="text-xs px-2 py-0.5" style={{ background: 'var(--sage)', color: 'white' }}>
+                    季節限定
+                  </span>
+                )}
               </div>
-              <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text)' }}>{p.description}</p>
-              <div className="flex justify-between items-center">
-                <div className="text-sm" style={{ color: 'var(--brown)' }}>
-                  <span>半磅 NT${p.priceRegular}</span>
+              {p.flavorNotes.length > 0 && (
+                <div className="inline-block px-3 py-1.5 text-xs md:text-sm"
+                  style={{ border: '1px solid var(--brown-light)', color: 'var(--text)' }}>
+                  風味：{p.flavorNotes.join('、')}
                 </div>
-                <span className="text-xs tracking-wider underline underline-offset-2 group-hover:opacity-70" style={{ color: 'var(--brown)' }}>
-                  了解更多
-                </span>
-              </div>
+              )}
             </div>
-          </Link>
+
+            {/* Price */}
+            <div className="shrink-0 text-right">
+              <span className="text-3xl md:text-4xl font-light" style={{ color: 'var(--brown)' }}>
+                {p.priceRegular}
+              </span>
+              <span className="text-base ml-0.5" style={{ color: 'var(--brown)' }}>元</span>
+            </div>
+          </div>
         ))}
       </div>
     </div>
