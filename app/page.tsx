@@ -58,37 +58,44 @@ export default async function Home() {
 
       {/* Products */}
       <section className="max-w-5xl mx-auto px-4 md:px-6 py-14 md:py-20">
-        <div className="text-center mb-10 md:mb-12">
+        <div className="text-center mb-10 md:mb-14">
           <p className="text-xs tracking-[0.3em] mb-3" style={{ color: 'var(--brown-light)' }}>OUR BEANS</p>
           <h2 className="text-2xl" style={{ color: 'var(--brown)' }}>商品</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-10">
           {products.map(p => (
             <Link key={p.id} href={`/products/${p.slug}`}
-              className="group block rounded-sm transition-shadow hover:shadow-md overflow-hidden"
+              className="group block rounded-sm overflow-hidden transition-shadow hover:shadow-md"
               style={{ background: 'var(--cream)' }}>
-              <div className="relative aspect-square overflow-hidden flex items-center justify-center text-sm" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
+              <div className="relative aspect-square flex items-center justify-center text-xs" style={{ background: '#E8E0D5', color: 'var(--muted)' }}>
                 {p.imageUrl
                   ? <Image
                       src={p.imageUrl}
                       alt={p.name}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="object-cover"
                     />
                   : '商品圖片'}
               </div>
-              <div className="p-4 sm:p-5">
+              <div className="p-5 md:p-6">
                 {p.isSeasonal && (
-                  <span className="text-xs tracking-wider px-2 py-0.5 mb-3 inline-block" style={{ background: 'var(--sage)', color: 'white' }}>
+                  <span className="text-xs tracking-wider px-2 py-1 mb-3 inline-block" style={{ background: 'var(--sage)', color: 'white' }}>
                     季節限定
                   </span>
                 )}
-                <h3 className="text-base sm:text-lg font-semibold mb-2" style={{ color: 'var(--brown)' }}>{p.name}</h3>
-                <p className="text-sm mb-2" style={{ color: 'var(--muted)' }}>{p.roastLevel}・{p.process}</p>
-                <p className="text-base font-medium" style={{ color: 'var(--brown)' }}>
-                  半磅 NT${p.priceRegular}
-                </p>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: 'var(--brown)' }}>{p.name}</h3>
+                <p className="text-xs mb-3" style={{ color: 'var(--muted)' }}>{p.origin}・{p.roastLevel}・{p.process}</p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  {p.flavorNotes.map(n => (
+                    <span key={n} className="text-xs px-2 py-0.5 rounded-full" style={{ background: 'var(--bg)', color: 'var(--muted)' }}>{n}</span>
+                  ))}
+                </div>
+                <p className="text-sm leading-relaxed mb-4" style={{ color: 'var(--text)' }}>{p.description}</p>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm" style={{ color: 'var(--brown)' }}>半磅 NT${p.priceRegular}</span>
+                  <span className="text-xs tracking-wider underline underline-offset-2 group-hover:opacity-70" style={{ color: 'var(--brown)' }}>了解更多</span>
+                </div>
               </div>
             </Link>
           ))}
