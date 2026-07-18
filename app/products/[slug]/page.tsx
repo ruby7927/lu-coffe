@@ -66,6 +66,11 @@ export default async function ProductPage({ params }: Props) {
             </p>
           </div>
 
+          <a href="https://www.instagram.com/Lucoffee2026" target="_blank" rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-3 text-sm tracking-widest transition-opacity hover:opacity-80"
+            style={{ background: 'var(--brown)', color: 'white' }}>
+            前往 IG 下單
+          </a>
         </div>
       </div>
     </div>
