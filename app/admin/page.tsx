@@ -139,6 +139,7 @@ export default function AdminPage() {
   const [ledgerTo, setLedgerTo] = useState('')
   // Upload state
   const [uploading, setUploading] = useState(false)
+  const [activeBtn, setActiveBtn] = useState<string | null>(null)
   const contentRef = useRef<HTMLTextAreaElement>(null)
 
   // Upload helper: returns URL or null on failure
@@ -1102,23 +1103,30 @@ export default function AdminPage() {
                       { label: 'I', title: '斜體', italic: true, action: () => wrapOrInsert('*', '*', '斜體文字') },
                       { label: '• 條列', title: '條列項目', action: () => insertLinePrefix('- ') },
                       { label: '── 分隔線', title: '水平分隔線', action: () => insertAtCursor('\n\n---\n\n') },
-                    ] as { label: string; title: string; bold?: boolean; italic?: boolean; action: () => void }[]).map(btn => (
-                      <button key={btn.label} type="button" onClick={btn.action} title={btn.title}
-                        className="px-3 py-1.5 text-xs transition-all active:scale-95"
-                        style={{
-                          color: 'var(--brown)',
-                          background: 'white',
-                          border: '1px solid var(--brown-light)',
-                          borderRadius: 4,
-                          fontWeight: btn.bold ? 700 : 400,
-                          fontStyle: btn.italic ? 'italic' : 'normal',
-                          cursor: 'pointer',
-                        }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'var(--cream)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'white')}>
-                        {btn.label}
-                      </button>
-                    ))}
+                    ] as { label: string; title: string; bold?: boolean; italic?: boolean; action: () => void }[]).map(btn => {
+                      const isActive = activeBtn === btn.label
+                      return (
+                        <button key={btn.label} type="button" title={btn.title}
+                          onClick={() => {
+                            btn.action()
+                            setActiveBtn(btn.label)
+                            setTimeout(() => setActiveBtn(null), 400)
+                          }}
+                          className="px-3 py-1.5 text-xs transition-all"
+                          style={{
+                            color: isActive ? 'white' : 'var(--brown)',
+                            background: isActive ? 'var(--brown)' : 'white',
+                            border: `1px solid ${isActive ? 'var(--brown)' : 'var(--brown-light)'}`,
+                            borderRadius: 4,
+                            fontWeight: btn.bold ? 700 : 400,
+                            fontStyle: btn.italic ? 'italic' : 'normal',
+                            cursor: 'pointer',
+                            transform: isActive ? 'scale(0.95)' : 'scale(1)',
+                          }}>
+                          {btn.label}
+                        </button>
+                      )
+                    })}
                   </div>
                   <textarea ref={contentRef} placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
                     rows={14} className={`${inputClass} resize-none`} style={{ ...inputStyle, borderTopLeftRadius: 0, borderTopRightRadius: 0 }} />
