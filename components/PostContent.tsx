@@ -1,5 +1,10 @@
 import Image from 'next/image'
 
+// HTML output from rich text editor
+function HtmlContent({ html }: { html: string }) {
+  return <div className="post-html" dangerouslySetInnerHTML={{ __html: html }} />
+}
+
 function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
   return parts.map((part, i) => {
@@ -12,6 +17,8 @@ function renderInline(text: string): React.ReactNode {
 }
 
 export default function PostContent({ content }: { content: string }) {
+  if (content.trimStart().startsWith('<')) return <HtmlContent html={content} />
+
   const lines = content.split('\n')
   const blocks: React.ReactNode[] = []
   let paraBuf: string[] = []

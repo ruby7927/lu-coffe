@@ -1,5 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import dynamic from 'next/dynamic'
+const RichTextEditor = dynamic(() => import('@/components/RichTextEditor'), { ssr: false })
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: '待確認', CONFIRMED: '已確認', SHIPPED: '已出貨', DELIVERED: '已到貨', CANCELLED: '已取消',
@@ -1094,58 +1096,13 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div>
-                  {/* Formatting toolbar */}
-                  <div className="flex items-center gap-0.5 flex-wrap mb-1 px-1 py-1 rounded-t-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)', borderBottom: 'none' }}>
-                    {([
-                      { label: 'H1', title: '大標題', action: () => insertLinePrefix('# ') },
-                      { label: 'H2', title: '副標題', action: () => insertLinePrefix('## ') },
-                      { label: 'B', title: '粗體', bold: true, action: () => wrapOrInsert('**', '**', '粗體文字') },
-                      { label: 'I', title: '斜體', italic: true, action: () => wrapOrInsert('*', '*', '斜體文字') },
-                      { label: '• 條列', title: '條列項目', action: () => insertLinePrefix('- ') },
-                      { label: '── 分隔線', title: '水平分隔線', action: () => insertAtCursor('\n\n---\n\n') },
-                    ] as { label: string; title: string; bold?: boolean; italic?: boolean; action: () => void }[]).map(btn => {
-                      const isActive = activeBtn === btn.label
-                      return (
-                        <button key={btn.label} type="button" title={btn.title}
-                          onClick={() => {
-                            btn.action()
-                            setActiveBtn(btn.label)
-                            setTimeout(() => setActiveBtn(null), 400)
-                          }}
-                          className="px-3 py-1.5 text-xs transition-all"
-                          style={{
-                            color: isActive ? 'white' : 'var(--brown)',
-                            background: isActive ? 'var(--brown)' : 'white',
-                            border: `1px solid ${isActive ? 'var(--brown)' : 'var(--brown-light)'}`,
-                            borderRadius: 4,
-                            fontWeight: btn.bold ? 700 : 400,
-                            fontStyle: btn.italic ? 'italic' : 'normal',
-                            cursor: 'pointer',
-                            transform: isActive ? 'scale(0.95)' : 'scale(1)',
-                          }}>
-                          {btn.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  <textarea ref={contentRef} placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
-                    rows={14} className={`${inputClass} resize-none`} style={{ ...inputStyle, borderTopLeftRadius: 0, borderTopRightRadius: 0 }} />
-                  <div className="flex items-center gap-3 mt-2 flex-wrap">
-                    <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
-                      📷 {uploading ? '上傳中...' : '在游標位置插入圖片'}
-                      <input type="file" accept="image/*" className="hidden" disabled={uploading}
-                        onChange={async e => {
-                          const file = e.target.files?.[0]
-                          if (!file) return
-                          const url = await uploadImageFile(file, 'posts')
-                          if (url) insertAtCursor(`\n\n![](${url})\n\n`)
-                          e.target.value = ''
-                        }} />
-                    </label>
-                    <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      支援：<code>**粗體**</code> <code>*斜體*</code> <code># 大標</code> <code>## 副標</code> <code>- 條列</code>
-                    </p>
-                  </div>
+                  <RichTextEditor
+                    key={editPost?.id ?? 'new'}
+                    value={postForm.content}
+                    onChange={html => setPostForm(f => ({ ...f, content: html }))}
+                    uploadImage={file => uploadImageFile(file, 'posts')}
+                    uploading={uploading}
+                  />
                 </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer" style={{ color: 'var(--text)' }}>
                   <input type="checkbox" checked={postForm.isPublished} onChange={e => setPostForm(f => ({ ...f, isPublished: e.target.checked }))} />
