@@ -1,13 +1,16 @@
 import Image from 'next/image'
 
-/**
- * Minimal markdown-ish renderer for blog posts:
- * - `# 標題`        → H2
- * - `## 副標`       → H3
- * - `![alt](/url)`  → Image
- * - `- 項目`        → bullet list (consecutive lines form one list)
- * - blank line       → paragraph break
- */
+function renderInline(text: string): React.ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**'))
+      return <strong key={i}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('*') && part.endsWith('*'))
+      return <em key={i}>{part.slice(1, -1)}</em>
+    return part
+  })
+}
+
 export default function PostContent({ content }: { content: string }) {
   const lines = content.split('\n')
   const blocks: React.ReactNode[] = []
@@ -20,7 +23,7 @@ export default function PostContent({ content }: { content: string }) {
     if (text) {
       blocks.push(
         <p key={`p-${blocks.length}`} className="text-base leading-loose mb-5 whitespace-pre-wrap" style={{ color: 'var(--text)' }}>
-          {text}
+          {renderInline(text)}
         </p>
       )
     }
@@ -31,7 +34,7 @@ export default function PostContent({ content }: { content: string }) {
     if (listBuf.length === 0) return
     blocks.push(
       <ul key={`ul-${blocks.length}`} className="text-base leading-loose mb-5 list-disc pl-6 space-y-2" style={{ color: 'var(--text)' }}>
-        {listBuf.map((item, i) => <li key={i}>{item}</li>)}
+        {listBuf.map((item, i) => <li key={i}>{renderInline(item)}</li>)}
       </ul>
     )
     listBuf = []
@@ -53,18 +56,31 @@ export default function PostContent({ content }: { content: string }) {
       continue
     }
 
+    // Horizontal rule
+    if (line === '---') {
+      flushPara(); flushList()
+      blocks.push(<hr key={`hr-${blocks.length}`} className="my-8" style={{ borderColor: 'var(--cream)' }} />)
+      continue
+    }
+
+    // H1
+    if (line.startsWith('# ')) {
+      flushPara(); flushList()
+      blocks.push(
+        <h2 key={`h1-${blocks.length}`} className="text-xl font-semibold mt-12 mb-5" style={{ color: 'var(--brown)' }}>
+          {renderInline(line.slice(2))}
+        </h2>
+      )
+      continue
+    }
+
     // H2
     if (line.startsWith('## ')) {
       flushPara(); flushList()
       blocks.push(
-        <h3 key={`h-${blocks.length}`} className="text-lg font-semibold mt-10 mb-4" style={{ color: 'var(--brown)' }}>{line.slice(3)}</h3>
-      )
-      continue
-    }
-    if (line.startsWith('# ')) {
-      flushPara(); flushList()
-      blocks.push(
-        <h2 key={`h-${blocks.length}`} className="text-xl font-semibold mt-12 mb-5" style={{ color: 'var(--brown)' }}>{line.slice(2)}</h2>
+        <h3 key={`h2-${blocks.length}`} className="text-lg font-semibold mt-10 mb-4" style={{ color: 'var(--brown)' }}>
+          {renderInline(line.slice(3))}
+        </h3>
       )
       continue
     }
@@ -82,7 +98,7 @@ export default function PostContent({ content }: { content: string }) {
       continue
     }
 
-    // Plain line (accumulate paragraph)
+    // Plain line
     flushList()
     paraBuf.push(line)
   }

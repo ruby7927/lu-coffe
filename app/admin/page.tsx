@@ -186,6 +186,39 @@ export default function AdminPage() {
     }, 0)
   }
 
+  const wrapOrInsert = (before: string, after: string, placeholder: string) => {
+    const ta = contentRef.current
+    if (!ta) { insertAtCursor(before + placeholder + after); return }
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const selected = postForm.content.slice(start, end)
+    const wrapped = before + (selected || placeholder) + after
+    const newContent = postForm.content.slice(0, start) + wrapped + postForm.content.slice(end)
+    setPostForm(f => ({ ...f, content: newContent }))
+    setTimeout(() => {
+      ta.focus()
+      if (selected) {
+        ta.setSelectionRange(start, start + wrapped.length)
+      } else {
+        ta.setSelectionRange(start + before.length, start + before.length + placeholder.length)
+      }
+    }, 0)
+  }
+
+  const insertLinePrefix = (prefix: string) => {
+    const ta = contentRef.current
+    if (!ta) { insertAtCursor(prefix); return }
+    const start = ta.selectionStart
+    const content = postForm.content
+    const lineStart = content.lastIndexOf('\n', start - 1) + 1
+    const newContent = content.slice(0, lineStart) + prefix + content.slice(lineStart)
+    setPostForm(f => ({ ...f, content: newContent }))
+    setTimeout(() => {
+      ta.focus()
+      ta.setSelectionRange(start + prefix.length, start + prefix.length)
+    }, 0)
+  }
+
   const headers = useCallback(() => ({ 'Content-Type': 'application/json', 'x-admin-pw': pw }), [pw])
 
   const fetchAll = useCallback(async () => {
@@ -1060,8 +1093,25 @@ export default function AdminPage() {
                   </div>
                 </div>
                 <div>
+                  {/* Formatting toolbar */}
+                  <div className="flex items-center gap-0.5 flex-wrap mb-1 px-1 py-1 rounded-t-sm" style={{ background: 'var(--cream)', border: '1px solid var(--brown-light)', borderBottom: 'none' }}>
+                    {([
+                      { label: 'H1', title: '大標題', action: () => insertLinePrefix('# ') },
+                      { label: 'H2', title: '副標題', action: () => insertLinePrefix('## ') },
+                      { label: 'B', title: '粗體', bold: true, action: () => wrapOrInsert('**', '**', '粗體文字') },
+                      { label: 'I', title: '斜體', italic: true, action: () => wrapOrInsert('*', '*', '斜體文字') },
+                      { label: '• 條列', title: '條列項目', action: () => insertLinePrefix('- ') },
+                      { label: '─ 分隔', title: '水平分隔線', action: () => insertAtCursor('\n\n---\n\n') },
+                    ] as { label: string; title: string; bold?: boolean; italic?: boolean; action: () => void }[]).map(btn => (
+                      <button key={btn.label} type="button" onClick={btn.action} title={btn.title}
+                        className="px-2.5 py-1 text-xs rounded-sm hover:opacity-70 transition-opacity"
+                        style={{ color: 'var(--brown)', fontWeight: btn.bold ? 700 : 400, fontStyle: btn.italic ? 'italic' : 'normal' }}>
+                        {btn.label}
+                      </button>
+                    ))}
+                  </div>
                   <textarea ref={contentRef} placeholder="文章內容" value={postForm.content} onChange={e => setPostForm(f => ({ ...f, content: e.target.value }))}
-                    rows={14} className={`${inputClass} resize-none`} style={inputStyle} />
+                    rows={14} className={`${inputClass} resize-none`} style={{ ...inputStyle, borderTopLeftRadius: 0, borderTopRightRadius: 0 }} />
                   <div className="flex items-center gap-3 mt-2 flex-wrap">
                     <label className="inline-flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:opacity-80" style={{ border: '1px solid var(--brown)', color: 'var(--brown)' }}>
                       📷 {uploading ? '上傳中...' : '在游標位置插入圖片'}
@@ -1075,7 +1125,7 @@ export default function AdminPage() {
                         }} />
                     </label>
                     <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                      支援：<code># 大標</code> <code>## 小標</code> <code>- 條列</code> <code>![圖說](url)</code>
+                      支援：<code>**粗體**</code> <code>*斜體*</code> <code># 大標</code> <code>## 副標</code> <code>- 條列</code>
                     </p>
                   </div>
                 </div>
