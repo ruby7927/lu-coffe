@@ -296,16 +296,17 @@ export default function AdminPage() {
     return true
   })
   const ledgerWithTotals = (() => {
-    const asc = [...filteredLedger].sort((a, b) =>
+    const filteredIds = new Set(filteredLedger.map(e => e.id))
+    const allAsc = [...ledger].sort((a, b) =>
       a.date === b.date ? 0 : a.date < b.date ? -1 : 1
     )
     let running = 0
     const balanceMap = new Map<string, number>()
-    for (const e of asc) {
+    for (const e of allAsc) {
       running += (e.income || 0) - (e.expense || 0)
-      balanceMap.set(e.id, running)
+      if (filteredIds.has(e.id)) balanceMap.set(e.id, running)
     }
-    return filteredLedger.map(e => ({ ...e, balance: balanceMap.get(e.id) || 0 }))
+    return filteredLedger.map(e => ({ ...e, balance: balanceMap.get(e.id) ?? 0 }))
   })()
   const ledgerTotalIncome = filteredLedger.reduce((s, e) => s + (e.income || 0), 0)
   const ledgerTotalExpense = filteredLedger.reduce((s, e) => s + (e.expense || 0), 0)
